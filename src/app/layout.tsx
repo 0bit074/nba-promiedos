@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react";
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -37,6 +38,7 @@ export default function RootLayout({ children, modal }: LayoutProps<"/">) {
         <MobileNav />
         {modal}
         <ServiceWorkerRegister />
+        <Analytics />
       </body>
     </html>
   );
