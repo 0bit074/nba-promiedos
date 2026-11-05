@@ -26,7 +26,7 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children, modal }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
@@ -35,6 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <MobileNav />
+        {modal}
         <ServiceWorkerRegister />
       </body>
     </html>

@@ -53,6 +53,43 @@ export interface Game {
   broadcast: string | null;
 }
 
+export interface BoxScorePlayer {
+  id: string;
+  /** Nombre abreviado, por ejemplo "S. Gilgeous-Alexander". */
+  name: string;
+  isStarter: boolean;
+  didNotPlay: boolean;
+  minutes: string;
+  points: number;
+  rebounds: string;
+  assists: string;
+}
+
+export interface ShootingStat {
+  made: number;
+  attempted: number;
+}
+
+export interface TeamGameStats {
+  fieldGoals: ShootingStat;
+  threePointers: ShootingStat;
+  freeThrows: ShootingStat;
+  offensiveRebounds: number;
+  defensiveRebounds: number;
+  turnovers: number;
+}
+
+export interface TeamBoxScore {
+  players: BoxScorePlayer[];
+  stats: TeamGameStats;
+}
+
+export interface GameDetail {
+  game: Game;
+  /** `null` si el partido no empezó o todavía no hay estadísticas. */
+  boxScores: { home: TeamBoxScore; away: TeamBoxScore } | null;
+}
+
 export type ConferenceId = "east" | "west";
 
 export interface TeamStanding {
@@ -166,6 +203,8 @@ export interface PlayerProfile {
 export interface NbaDataProvider {
   /** @param date Jornada NBA en formato YYYY-MM-DD. */
   getGamesByDate(date: string): Promise<Game[]>;
+  /** Devuelve `null` si el partido no existe. */
+  getGameDetail(id: string): Promise<GameDetail | null>;
   /** Devuelve primero el Este y después el Oeste. */
   getStandings(): Promise<ConferenceStandings[]>;
   getStatLeaders(): Promise<StatLeaderCategory[]>;

@@ -42,7 +42,7 @@ function TeamRow({ competitor, isDimmed, pointsUnit }: TeamRowProps) {
         {topScorer && (
           <Link
             href={`/jugadores/${topScorer.playerId}`}
-            className="flex gap-1 text-xs text-muted hover:text-accent"
+            className="relative z-10 flex gap-1 text-xs text-muted hover:text-accent"
           >
             <span className="truncate">{topScorer.name}</span>
             <span className="shrink-0">
@@ -108,7 +108,7 @@ function GameStatusPanel({ game }: { game: Game }) {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Ver resumen de ${game.away.team.name} contra ${game.home.team.name} en YouTube (se abre en una pestaña nueva)`}
-          className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent"
+          className="relative z-10 flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-muted transition-colors hover:border-accent hover:text-accent"
         >
           <Video aria-hidden className="size-3.5" />
           Resumen
@@ -127,17 +127,32 @@ function hasLost(game: Game, team: GameCompetitor, rival: GameCompetitor) {
   );
 }
 
-export function GameCard({ game }: { game: Game }) {
+interface GameCardProps {
+  game: Game;
+  /** Conserva la jornada elegida al abrir el detalle sobre la cartelera. */
+  detailQuery: string;
+}
+
+export function GameCard({ game, detailQuery }: GameCardProps) {
   const { home, away, status } = game;
   const hasBeenPlayed = status === "live" || status === "final";
   const pointsUnit = hasBeenPlayed ? "pts" : "pts/p";
 
   return (
     <article
-      className={`flex overflow-hidden rounded-lg border bg-surface ${
+      className={`relative flex overflow-hidden rounded-lg border bg-surface transition-colors ${
         status === "live" ? "border-live/50" : "border-line"
-      }`}
+      } ${hasBeenPlayed ? "hover:border-muted" : ""}`}
     >
+      {hasBeenPlayed && (
+        // Capa enlazada: el anotador y "Resumen" quedan por encima de ella.
+        <Link
+          href={`/partidos/${game.id}${detailQuery}`}
+          scroll={false}
+          aria-label={`Ver estadísticas de ${away.team.name} contra ${home.team.name}`}
+          className="absolute inset-0"
+        />
+      )}
       <div className="min-w-0 flex-1 divide-y divide-line">
         <TeamRow
           competitor={away}

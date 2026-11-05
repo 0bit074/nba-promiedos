@@ -1,4 +1,5 @@
 import type {
+  BoxScorePlayer,
   ConferenceId,
   ConferenceStandings,
   Game,
@@ -10,6 +11,7 @@ import type {
   PlayerSummary,
   StatCategoryId,
   Team,
+  TeamBoxScore,
 } from "./types";
 
 function team(abbreviation: string, name: string, fullName: string): Team {
@@ -288,21 +290,65 @@ const MOCK_STAT_CATEGORIES: StatCategoryId[] = [
   "blocks",
 ];
 
+function getMockGames(date: string) {
+  const dayStart = Date.parse(`${date}T00:00:00Z`);
+
+  return MOCK_GAMES.map(
+    ({ startHour, period, clock, isPeriodBreak, broadcast, ...game }, index): Game => ({
+      ...game,
+      id: `mock-${date}-${index}`,
+      startTime: new Date(dayStart + startHour * 3_600_000).toISOString(),
+      period: period ?? 0,
+      clock: clock ?? null,
+      isPeriodBreak: isPeriodBreak ?? false,
+      broadcast: broadcast ?? null,
+    }),
+  );
+}
+
+function createBoxScore(prefix: string, topPoints: number): TeamBoxScore {
+  const players = Array.from({ length: 9 }, (_, index): BoxScorePlayer => ({
+    id: String((index % 5) + 1),
+    name: `${prefix} Jugador ${index + 1}`,
+    isStarter: index < 5,
+    didNotPlay: index === 8,
+    minutes: index === 8 ? "-" : String(36 - index * 3),
+    points: index === 8 ? 0 : Math.max(topPoints - index * 4, 0),
+    rebounds: index === 8 ? "-" : String(9 - index),
+    assists: index === 8 ? "-" : String((index * 3) % 7),
+  }));
+
+  return {
+    players,
+    stats: {
+      fieldGoals: { made: 38 + topPoints % 7, attempted: 86 },
+      threePointers: { made: 11 + topPoints % 5, attempted: 33 },
+      freeThrows: { made: 14 + topPoints % 4, attempted: 19 },
+      offensiveRebounds: 8 + topPoints % 6,
+      defensiveRebounds: 30 + topPoints % 8,
+      turnovers: 9 + topPoints % 5,
+    },
+  };
+}
+
 export const mockProvider: NbaDataProvider = {
   async getGamesByDate(date) {
-    const dayStart = Date.parse(`${date}T00:00:00Z`);
+    return getMockGames(date);
+  },
 
-    return MOCK_GAMES.map(
-      ({ startHour, period, clock, isPeriodBreak, broadcast, ...game }, index): Game => ({
-        ...game,
-        id: `mock-${date}-${index}`,
-        startTime: new Date(dayStart + startHour * 3_600_000).toISOString(),
-        period: period ?? 0,
-        clock: clock ?? null,
-        isPeriodBreak: isPeriodBreak ?? false,
-        broadcast: broadcast ?? null,
-      }),
-    );
+  async getGameDetail(id) {
+    const match = id.match(/^mock-(\d{4}-\d{2}-\d{2})-\d+$/);
+    const game = match && getMockGames(match[1]).find((g) => g.id === id);
+    if (!game) return null;
+
+    const hasBeenPlayed = game.status === "live" || game.status === "final";
+
+    return {
+      game,
+      boxScores: hasBeenPlayed
+        ? { home: createBoxScore("L.", 31), away: createBoxScore("V.", 27) }
+        : null,
+    };
   },
 
   async getStandings() {

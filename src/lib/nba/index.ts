@@ -4,6 +4,7 @@ import { mockProvider } from "./mock";
 import type {
   ConferenceStandings,
   Game,
+  GameDetail,
   NbaDataProvider,
   PlayerProfile,
   PlayerSummary,
@@ -12,19 +13,24 @@ import type {
 } from "./types";
 
 export type {
+  BoxScorePlayer,
   ConferenceId,
   ConferenceStandings,
   Game,
   GameCompetitor,
+  GameDetail,
   GameStatus,
   PlayerAverages,
   PlayerGameLogEntry,
   PlayerProfile,
   PlayerSummary,
   RosterPlayer,
+  ShootingStat,
   StatCategoryId,
   StatLeaderCategory,
   Team,
+  TeamBoxScore,
+  TeamGameStats,
   TeamRoster,
   TeamStanding,
 } from "./types";
@@ -52,6 +58,22 @@ export async function getGamesByDate(date: string): Promise<Game[]> {
   }
 
   return games;
+}
+
+export async function getGameDetail(id: string): Promise<GameDetail | null> {
+  "use cache";
+
+  const detail = await provider.getGameDetail(id);
+
+  if (detail?.game.status === "live") {
+    cacheLife("seconds");
+  } else if (detail && isGameOver(detail.game)) {
+    cacheLife("hours");
+  } else {
+    cacheLife("minutes");
+  }
+
+  return detail;
 }
 
 export async function getStandings(): Promise<ConferenceStandings[]> {

@@ -39,8 +39,9 @@ Para cambiar los iconos, edita y ejecuta `scripts/generate-icons.mjs`.
 
 ```text
 src/
-├── app/                 Rutas: partidos (/), posiciones, equipos, jugadores y pickem
+├── app/                 Rutas: partidos (/), detalle de partido, posiciones, equipos, jugadores y pickem
 ├── components/
+│   ├── game-detail/     Modal del partido: estadísticas y box score
 │   ├── games/           Cartelera: tarjetas, selector de fechas y actualización en vivo
 │   ├── layout/          Header y navegación (PC y mobile)
 │   ├── players/         Buscador, líderes y ficha de jugador

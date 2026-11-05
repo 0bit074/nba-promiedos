@@ -1,4 +1,4 @@
-import type { Game } from "./types";
+import type { Game, ShootingStat } from "./types";
 
 function getPeriodName(period: number) {
   if (period <= 4) return `Q${period}`;
@@ -32,6 +32,12 @@ export function getHighlightsUrl({ home, away }: Game) {
   });
 
   return `https://www.youtube.com/results?${params}`;
+}
+
+/** Porcentaje de acierto con un decimal; 0 si no hubo intentos. */
+export function getShootingPercent({ made, attempted }: ShootingStat) {
+  if (attempted === 0) return 0;
+  return Math.round((made / attempted) * 1000) / 10;
 }
 
 export type StandingZone = "playoffs" | "play-in" | "out";

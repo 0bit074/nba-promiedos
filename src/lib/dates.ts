@@ -16,13 +16,18 @@ function toUtcDate(date: string) {
   return new Date(`${date}T00:00:00Z`);
 }
 
-export function getNbaToday() {
+/** Jornada NBA a la que pertenece un instante, en formato YYYY-MM-DD. */
+export function getNbaDate(instant: Date) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: NBA_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date());
+  }).format(instant);
+}
+
+export function getNbaToday() {
+  return getNbaDate(new Date());
 }
 
 export function isValidDate(value: string) {

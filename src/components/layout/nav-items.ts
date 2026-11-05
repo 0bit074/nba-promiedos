@@ -15,7 +15,12 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Partidos", icon: CalendarDays },
+  {
+    href: "/",
+    label: "Partidos",
+    icon: CalendarDays,
+    relatedPath: "/partidos",
+  },
   {
     href: "/posiciones",
     label: "Posiciones",

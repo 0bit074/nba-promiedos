@@ -1,23 +1,30 @@
 import type {
+  BoxScorePlayer,
   ConferenceId,
   ConferenceStandings,
   Game,
   GameCompetitor,
+  GameDetail,
   GameStatus,
   NbaDataProvider,
   PlayerAverages,
   PlayerGameLogEntry,
   PlayerSummary,
   RosterPlayer,
+  ShootingStat,
   StatCategoryId,
   StatLeaderCategory,
   Team,
+  TeamBoxScore,
+  TeamGameStats,
   TeamRoster,
   TeamStanding,
 } from "./types";
 
 const SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
+const SUMMARY_URL =
+  "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary";
 const TEAMS_URL =
   "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams";
 const STANDINGS_URL =
@@ -73,7 +80,7 @@ interface EspnEvent {
   id: string;
   date: string;
   status: {
-    period: number;
+    period?: number;
     displayClock?: string;
     type: { name: string; state: "pre" | "in" | "post" };
   };
@@ -150,6 +157,46 @@ interface EspnAthlete {
   displayBirthPlace?: string;
   displayDraft?: string;
   displayExperience?: string;
+}
+
+interface EspnSummaryCompetitor {
+  homeAway: "home" | "away";
+  score?: string;
+  record?: { type?: string; summary: string }[];
+  linescores?: unknown[];
+  team: Omit<EspnTeam, "shortDisplayName"> & { name: string };
+}
+
+interface EspnBoxScoreAthlete {
+  starter?: boolean;
+  didNotPlay?: boolean;
+  stats?: string[];
+  athlete: { id: string; displayName: string; shortName?: string };
+}
+
+interface EspnBoxScoreTeam {
+  homeAway: "home" | "away";
+  statistics: { name: string; displayValue: string }[];
+}
+
+interface EspnBoxScorePlayers {
+  team: { id: string };
+  statistics: { keys: string[]; athletes: EspnBoxScoreAthlete[] }[];
+}
+
+interface EspnSummary {
+  header: {
+    id: string;
+    competitions: {
+      date: string;
+      status: EspnEvent["status"] & { displayClock?: string };
+      competitors: EspnSummaryCompetitor[];
+    }[];
+  };
+  boxscore?: {
+    teams?: EspnBoxScoreTeam[];
+    players?: EspnBoxScorePlayers[];
+  };
 }
 
 interface EspnRoster {
@@ -288,7 +335,7 @@ function toGame(event: EspnEvent): Game | null {
     id: event.id,
     startTime: event.date,
     status,
-    period: event.status.period,
+    period: event.status.period ?? 0,
     clock: event.status.displayClock ?? null,
     isPeriodBreak:
       statusName === "STATUS_HALFTIME" || statusName === "STATUS_END_PERIOD",
@@ -470,6 +517,118 @@ function toRosterPlayer(
   };
 }
 
+function toSummaryCompetitor(
+  { team, score, record }: EspnSummaryCompetitor,
+  status: GameStatus,
+): GameCompetitor {
+  const hasScore = status === "live" || status === "final";
+
+  return {
+    team: toTeam({ ...team, shortDisplayName: team.name }),
+    score: hasScore && score ? Number(score) : null,
+    record: record?.find(({ type }) => type === "total")?.summary ?? null,
+    topScorer: null,
+  };
+}
+
+function toBoxScorePlayer(
+  { athlete, starter, didNotPlay, stats = [] }: EspnBoxScoreAthlete,
+  keys: string[],
+): BoxScorePlayer {
+  const getStat = (key: string) => stats[keys.indexOf(key)] ?? "-";
+
+  return {
+    id: athlete.id,
+    name: athlete.shortName ?? athlete.displayName,
+    isStarter: starter ?? false,
+    didNotPlay: (didNotPlay ?? false) || stats.length === 0,
+    minutes: getStat("minutes"),
+    points: Number(getStat("points")) || 0,
+    rebounds: getStat("rebounds"),
+    assists: getStat("assists"),
+  };
+}
+
+/** Interpreta, por ejemplo, "42-98". */
+function parseShooting(value = ""): ShootingStat {
+  const [made, attempted] = value.split("-").map(Number);
+  return { made: made || 0, attempted: attempted || 0 };
+}
+
+function toTeamGameStats({ statistics }: EspnBoxScoreTeam): TeamGameStats {
+  const getStat = (name: string) =>
+    statistics.find((stat) => stat.name === name)?.displayValue;
+
+  return {
+    fieldGoals: parseShooting(getStat("fieldGoalsMade-fieldGoalsAttempted")),
+    threePointers: parseShooting(
+      getStat("threePointFieldGoalsMade-threePointFieldGoalsAttempted"),
+    ),
+    freeThrows: parseShooting(getStat("freeThrowsMade-freeThrowsAttempted")),
+    offensiveRebounds: Number(getStat("offensiveRebounds")) || 0,
+    defensiveRebounds: Number(getStat("defensiveRebounds")) || 0,
+    turnovers: Number(getStat("totalTurnovers")) || 0,
+  };
+}
+
+function toTeamBoxScore(
+  teamId: string,
+  stats: EspnBoxScoreTeam,
+  players: EspnBoxScorePlayers[],
+): TeamBoxScore | null {
+  const group = players.find(({ team }) => team.id === teamId)?.statistics[0];
+  if (!group) return null;
+
+  return {
+    players: group.athletes.map((athlete) =>
+      toBoxScorePlayer(athlete, group.keys),
+    ),
+    stats: toTeamGameStats(stats),
+  };
+}
+
+function toGameDetail({ header, boxscore }: EspnSummary): GameDetail | null {
+  const competition = header.competitions[0];
+  const home = competition?.competitors.find((c) => c.homeAway === "home");
+  const away = competition?.competitors.find((c) => c.homeAway === "away");
+  if (!home || !away) return null;
+
+  const { status: espnStatus } = competition;
+  const status = toGameStatus(espnStatus.type);
+  const statusName = espnStatus.type.name;
+
+  const game: Game = {
+    id: header.id,
+    startTime: competition.date,
+    status,
+    // En partidos terminados ESPN omite el cuarto: se deduce de los parciales.
+    period: espnStatus.period ?? home.linescores?.length ?? 0,
+    clock: espnStatus.displayClock ?? null,
+    isPeriodBreak:
+      statusName === "STATUS_HALFTIME" || statusName === "STATUS_END_PERIOD",
+    home: toSummaryCompetitor(home, status),
+    away: toSummaryCompetitor(away, status),
+    broadcast: null,
+  };
+
+  // Antes del partido, ESPN llena estos datos con promedios de la temporada.
+  const hasBeenPlayed = status === "live" || status === "final";
+  const { teams = [], players = [] } = boxscore ?? {};
+  const homeStats = teams.find((team) => team.homeAway === "home");
+  const awayStats = teams.find((team) => team.homeAway === "away");
+  if (!hasBeenPlayed || !homeStats || !awayStats) {
+    return { game, boxScores: null };
+  }
+
+  const homeBox = toTeamBoxScore(home.team.id, homeStats, players);
+  const awayBox = toTeamBoxScore(away.team.id, awayStats, players);
+
+  return {
+    game,
+    boxScores: homeBox && awayBox ? { home: homeBox, away: awayBox } : null,
+  };
+}
+
 /** API pública no oficial de ESPN: no requiere clave, pero no tiene garantías. */
 export const espnProvider: NbaDataProvider = {
   async getGamesByDate(date) {
@@ -477,6 +636,12 @@ export const espnProvider: NbaDataProvider = {
     const { events = [] } = await fetchJson<{ events?: EspnEvent[] }>(url);
 
     return events.map(toGame).filter((game) => game !== null);
+  },
+
+  async getGameDetail(id) {
+    const url = `${SUMMARY_URL}?event=${encodeURIComponent(id)}`;
+    const summary = await fetchJsonOrNull<EspnSummary>(url);
+    return summary ? toGameDetail(summary) : null;
   },
 
   async getStandings() {

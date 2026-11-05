@@ -16,11 +16,8 @@ function isActivePath(
   relatedPath?: string,
 ) {
   if (pathname === null) return false;
-  if (href === "/") return pathname === "/";
-  return (
-    pathname.startsWith(href) ||
-    (relatedPath !== undefined && pathname.startsWith(relatedPath))
-  );
+  if (relatedPath !== undefined && pathname.startsWith(relatedPath)) return true;
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
 function DesktopNavLinks({ pathname }: NavLinksProps) {

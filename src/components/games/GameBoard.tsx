@@ -8,7 +8,13 @@ import { LiveRefresher } from "./LiveRefresher";
 const LIVE_REFRESH_MS = 30_000;
 const PENDING_REFRESH_MS = 60_000;
 
-function GameSection({ title, games }: { title: string; games: Game[] }) {
+interface GameSectionProps {
+  title: string;
+  games: Game[];
+  detailQuery: string;
+}
+
+function GameSection({ title, games, detailQuery }: GameSectionProps) {
   if (games.length === 0) return null;
 
   return (
@@ -18,7 +24,7 @@ function GameSection({ title, games }: { title: string; games: Game[] }) {
       </h2>
       <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
         {games.map((game) => (
-          <GameCard key={game.id} game={game} />
+          <GameCard key={game.id} game={game} detailQuery={detailQuery} />
         ))}
       </div>
     </section>
@@ -61,6 +67,8 @@ export async function GameBoard({ searchParams }: GameBoardProps) {
   const upcomingGames = games.filter((game) => game.status === "scheduled");
   const finishedGames = games.filter(isGameOver);
 
+  const detailQuery = date === today ? "" : `?date=${date}`;
+
   const refreshInterval =
     liveGames.length > 0
       ? LIVE_REFRESH_MS
@@ -71,9 +79,17 @@ export async function GameBoard({ searchParams }: GameBoardProps) {
   return (
     <div className="space-y-6">
       {refreshInterval && <LiveRefresher intervalMs={refreshInterval} />}
-      <GameSection title="En vivo" games={liveGames} />
-      <GameSection title="Próximos" games={upcomingGames} />
-      <GameSection title="Finalizados" games={finishedGames} />
+      <GameSection title="En vivo" games={liveGames} detailQuery={detailQuery} />
+      <GameSection
+        title="Próximos"
+        games={upcomingGames}
+        detailQuery={detailQuery}
+      />
+      <GameSection
+        title="Finalizados"
+        games={finishedGames}
+        detailQuery={detailQuery}
+      />
     </div>
   );
 }
