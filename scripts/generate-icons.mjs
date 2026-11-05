@@ -28,6 +28,22 @@ function createIconSvg({ radius, scale }) {
 `;
 }
 
+/** Android solo usa la transparencia del badge: el color no se ve. */
+const badgeIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <mask id="seams">
+      <rect width="512" height="512" fill="white"/>
+      <g transform="translate(256 256) scale(1.4)" fill="none" stroke="black" stroke-width="16" stroke-linecap="round">
+        <path d="M-170 0H170M0-170V170"/>
+        <path d="M-120-120C-60-60-60 60-120 120"/>
+        <path d="M120-120C60-60 60 60 120 120"/>
+      </g>
+    </mask>
+  </defs>
+  <circle cx="256" cy="256" r="238" fill="white" mask="url(#seams)"/>
+</svg>
+`;
+
 const roundedIcon = createIconSvg({ radius: 112, scale: 1.2 });
 // Android recorta los iconos "maskable": la pelota debe quedar en la zona segura.
 const fullBleedIcon = createIconSvg({ radius: 0, scale: 0.95 });
@@ -43,4 +59,5 @@ await Promise.all([
   writePng(roundedIcon, 192, "public/icons/icon-192.png"),
   writePng(roundedIcon, 512, "public/icons/icon-512.png"),
   writePng(fullBleedIcon, 512, "public/icons/icon-maskable-512.png"),
+  writePng(badgeIcon, 96, "public/icons/badge-96.png"),
 ]);

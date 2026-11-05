@@ -35,6 +35,12 @@ Sin conexión, las páginas muestran `public/offline.html`: los marcadores nunca
 
 Para cambiar los iconos, edita y ejecuta `scripts/generate-icons.mjs`.
 
+## Notificaciones
+
+La app puede pedir permiso, suscribir el navegador y mostrar notificaciones. El service worker ya recibe mensajes con el formato `{ title, body, url, tag }`, pero todavía no hay un servidor que guarde las suscripciones y envíe avisos.
+
+`VAPID_PUBLIC_KEY` está en `src/lib/site.ts` y su pareja privada debe guardarse como `VAPID_PRIVATE_KEY` en el servidor que las envíe. Si se cambia el par de claves, hay que volver a suscribir a todos los usuarios.
+
 ## Estructura
 
 ```text
