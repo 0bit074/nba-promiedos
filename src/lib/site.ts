@@ -1,4 +1,4 @@
-export const APP_NAME = "NBA Promiedos";
+export const APP_NAME = "NBA Rookie";
 
 export const APP_DESCRIPTION =
   "Marcadores en vivo, fixture, posiciones y estadísticas de la NBA.";

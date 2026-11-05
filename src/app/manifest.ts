@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     name: APP_NAME,
-    short_name: "NBA",
+    short_name: APP_NAME,
     description: APP_DESCRIPTION,
     lang: "es",
     start_url: "/",

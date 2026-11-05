@@ -1,5 +1,5 @@
 // Cambiar la versión al modificar los archivos de PRECACHE_URLS.
-const CACHE_NAME = "offline-v1";
+const CACHE_NAME = "offline-v2";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [OFFLINE_URL, "/icons/icon-192.png"];
 
