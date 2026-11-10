@@ -17,6 +17,7 @@ import { getGameStatusLabel } from "@/lib/nba/format";
 import { BoxScoreTable } from "./BoxScoreTable";
 import { GameDetailTabs } from "./GameDetailTabs";
 import { GameStatsComparison } from "./GameStatsComparison";
+import { LineupCourt } from "./LineupCourt";
 
 const LIVE_REFRESH_MS = 30_000;
 
@@ -125,6 +126,18 @@ function GameDetailContent({ detail }: { detail: GameDetailData }) {
           <p className="mt-3 flex items-center gap-1.5 text-xs text-muted">
             <Flame aria-hidden className="size-3.5 text-orange-500" />
             Máximo anotador del equipo
+          </p>
+        </div>
+      }
+      lineups={
+        <div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <LineupCourt team={game.away.team} players={boxScores.away.players} />
+            <LineupCourt team={game.home.team} players={boxScores.home.players} />
+          </div>
+          <p className="mt-3 text-xs text-muted">
+            Titulares del partido. Las posiciones son aproximadas: la fuente
+            sólo indica base, alero o pívot.
           </p>
         </div>
       }

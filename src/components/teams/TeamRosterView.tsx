@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { PlayerRow } from "@/components/players/PlayerRow";
 import { StatusMessage } from "@/components/ui/StatusMessage";
+import { FavoriteTeamButton } from "./FavoriteTeamButton";
 import { getTeamRoster, type TeamRoster } from "@/lib/nba";
 
 /** Evita consultar rutas arbitrarias con lo que llegue en la URL. */
@@ -40,7 +41,8 @@ export async function TeamRosterView({
     <div className="space-y-4">
       <header className="flex items-center gap-3">
         <TeamLogo url={team.logoUrl} size={48} className="size-12 shrink-0 object-contain" />
-        <h1 className="min-w-0 text-2xl font-bold">{team.fullName}</h1>
+        <h1 className="min-w-0 flex-1 text-2xl font-bold">{team.fullName}</h1>
+        <FavoriteTeamButton team={{ id: team.id, name: team.name }} />
       </header>
       <section>
         <h2 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">

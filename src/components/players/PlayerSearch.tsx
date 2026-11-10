@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import Form from "next/form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useId, useState, type KeyboardEvent } from "react";
 import { SuggestionsList, usePlayerSuggestions } from "./PlayerSuggestions";
 
@@ -10,7 +10,14 @@ import { SuggestionsList, usePlayerSuggestions } from "./PlayerSuggestions";
  * Formulario GET: la búsqueda queda en la URL y funciona sin JavaScript.
  * Mientras se escribe, muestra los jugadores que coinciden.
  */
-export function PlayerSearchForm({ defaultQuery = "" }: { defaultQuery?: string }) {
+export function PlayerSearchForm({
+  defaultQuery = "",
+  autoFocus = false,
+}: {
+  defaultQuery?: string;
+  /** Al abrir la pestaña "Buscar", el cursor ya queda en el campo. */
+  autoFocus?: boolean;
+}) {
   const router = useRouter();
   const listId = useId();
   const [text, setText] = useState(defaultQuery);
@@ -64,9 +71,12 @@ export function PlayerSearchForm({ defaultQuery = "" }: { defaultQuery?: string 
           aria-hidden
           className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
         />
+        {/* Una búsqueda vacía vuelve a la pestaña "Buscar", no a Líderes. */}
+        <input type="hidden" name="tab" value="buscar" />
         <input
           type="search"
           name="q"
+          autoFocus={autoFocus}
           value={text}
           onChange={(event) => {
             setText(event.target.value);
@@ -111,11 +121,4 @@ export function PlayerSearchForm({ defaultQuery = "" }: { defaultQuery?: string 
       </button>
     </Form>
   );
-}
-
-export function PlayerSearch() {
-  const query = useSearchParams().get("q") ?? "";
-
-  // La clave reinicia el campo al navegar entre búsquedas.
-  return <PlayerSearchForm key={query} defaultQuery={query} />;
 }

@@ -10,6 +10,7 @@ import type {
   PlayerSummary,
   StatLeaderCategory,
   TeamRoster,
+  TeamSeasonStats,
 } from "./types";
 
 export type {
@@ -27,11 +28,13 @@ export type {
   RosterPlayer,
   ShootingStat,
   StatCategoryId,
+  StatLeader,
   StatLeaderCategory,
   Team,
   TeamBoxScore,
   TeamGameStats,
   TeamRoster,
+  TeamSeasonStats,
   TeamStanding,
 } from "./types";
 
@@ -113,4 +116,13 @@ export async function getTeamRoster(
   cacheLife("hours");
 
   return provider.getTeamRoster(teamId);
+}
+
+export async function getTeamStats(
+  teamId: string,
+): Promise<TeamSeasonStats | null> {
+  "use cache";
+  cacheLife("hours");
+
+  return provider.getTeamStats(teamId);
 }

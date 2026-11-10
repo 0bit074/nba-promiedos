@@ -5,23 +5,26 @@ import { useState, type ReactNode } from "react";
 interface GameDetailTabsProps {
   stats: ReactNode;
   players: ReactNode;
+  lineups: ReactNode;
 }
 
 const TABS = [
   { id: "stats", label: "Estadísticas" },
   { id: "players", label: "Jugadores" },
+  { id: "lineups", label: "Alineaciones" },
 ] as const;
 
-export function GameDetailTabs({ stats, players }: GameDetailTabsProps) {
-  const [activeTab, setActiveTab] =
-    useState<(typeof TABS)[number]["id"]>("stats");
+type TabId = (typeof TABS)[number]["id"];
+
+export function GameDetailTabs(panels: GameDetailTabsProps) {
+  const [activeTab, setActiveTab] = useState<TabId>("stats");
 
   return (
     <div>
       <div
         role="tablist"
         aria-label="Detalle del partido"
-        className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-surface p-1"
+        className="mb-4 grid grid-cols-3 gap-1 rounded-lg bg-surface p-1"
       >
         {TABS.map(({ id, label }) => (
           <button
@@ -30,7 +33,7 @@ export function GameDetailTabs({ stats, players }: GameDetailTabsProps) {
             role="tab"
             aria-selected={id === activeTab}
             onClick={() => setActiveTab(id)}
-            className={`h-10 rounded-md text-sm font-semibold ${
+            className={`h-10 truncate rounded-md px-1 text-sm font-semibold ${
               id === activeTab ? "bg-accent text-background" : "text-muted"
             }`}
           >
@@ -38,7 +41,7 @@ export function GameDetailTabs({ stats, players }: GameDetailTabsProps) {
           </button>
         ))}
       </div>
-      <div role="tabpanel">{activeTab === "stats" ? stats : players}</div>
+      <div role="tabpanel">{panels[activeTab]}</div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import type {
   Team,
   TeamBoxScore,
   TeamGameStats,
+  TeamSeasonStats,
   TeamRoster,
   TeamStanding,
 } from "./types";
@@ -41,10 +42,10 @@ const RECENT_GAMES_LIMIT = 10;
 
 const LEADER_CATEGORIES: [espnName: string, id: StatCategoryId][] = [
   ["pointsPerGame", "points"],
-  ["reboundsPerGame", "rebounds"],
   ["assistsPerGame", "assists"],
-  ["stealsPerGame", "steals"],
+  ["reboundsPerGame", "rebounds"],
   ["blocksPerGame", "blocks"],
+  ["3PointsMadePerGame", "threePointers"],
 ];
 
 /** La búsqueda también devuelve equipos de G League, con ids que se repiten. */
@@ -171,7 +172,27 @@ interface EspnBoxScoreAthlete {
   starter?: boolean;
   didNotPlay?: boolean;
   stats?: string[];
-  athlete: { id: string; displayName: string; shortName?: string };
+  athlete: {
+    id: string;
+    displayName: string;
+    shortName?: string;
+    jersey?: string;
+    position?: { abbreviation?: string };
+  };
+}
+
+interface EspnTeamStatistics {
+  team?: {
+    id: string;
+    abbreviation: string;
+    shortDisplayName?: string;
+    name?: string;
+    displayName: string;
+    logo?: string;
+  };
+  results?: {
+    stats?: { categories?: { stats?: { name: string; value?: number }[] }[] };
+  };
 }
 
 interface EspnBoxScoreTeam {
@@ -552,6 +573,42 @@ function toBoxScorePlayer(
     ),
     turnovers: getStat("turnovers"),
     plusMinus: getStat("plusMinus"),
+    position: athlete.position?.abbreviation ?? null,
+    jersey: athlete.jersey ?? null,
+  };
+}
+
+function toTeamSeasonStats({
+  team,
+  results,
+}: EspnTeamStatistics): TeamSeasonStats | null {
+  if (!team) return null;
+
+  const stats = (results?.stats?.categories ?? []).flatMap(
+    (category) => category.stats ?? [],
+  );
+  const getStat = (name: string) =>
+    stats.find((stat) => stat.name === name)?.value ?? 0;
+
+  return {
+    team: {
+      id: team.id,
+      name: team.shortDisplayName ?? team.name ?? team.displayName,
+      fullName: team.displayName,
+      abbreviation: team.abbreviation,
+      // El logo de este endpoint es para fondo claro; la app guarda el oscuro.
+      logoUrl: team.logo?.replace("/500/", "/500-dark/") ?? "",
+    },
+    gamesPlayed: getStat("gamesPlayed"),
+    points: getStat("avgPoints"),
+    rebounds: getStat("avgRebounds"),
+    assists: getStat("avgAssists"),
+    steals: getStat("avgSteals"),
+    blocks: getStat("avgBlocks"),
+    turnovers: getStat("avgTurnovers"),
+    fieldGoalPct: getStat("fieldGoalPct"),
+    threePointPct: getStat("threePointPct"),
+    freeThrowPct: getStat("freeThrowPct"),
   };
 }
 
@@ -725,6 +782,21 @@ export const espnProvider: NbaDataProvider = {
       careerAverages: toPlayerAverages(overview?.statistics, "Career"),
       recentGames: toRecentGames(gameLog),
     };
+  },
+
+  async getTeamStats(teamId) {
+    const url = `${TEAMS_URL}/${encodeURIComponent(teamId)}/statistics`;
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+
+    // ESPN responde 400 (no 404) a un id que no existe.
+    if (response.status === 400 || response.status === 404) return null;
+    if (!response.ok) {
+      throw new Error(`ESPN respondió con estado ${response.status}`);
+    }
+
+    return toTeamSeasonStats((await response.json()) as EspnTeamStatistics);
   },
 
   async getTeamRoster(teamId): Promise<TeamRoster | null> {

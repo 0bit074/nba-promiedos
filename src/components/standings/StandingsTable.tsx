@@ -1,3 +1,4 @@
+import { FavoriteTeamButton } from "@/components/teams/FavoriteTeamButton";
 import { TeamLogo } from "@/components/teams/TeamLogo";
 import Link from "next/link";
 import type { TeamStanding } from "@/lib/nba";
@@ -55,19 +56,25 @@ function StandingRow({
         </span>
       </td>
       <th scope="row" className="w-full max-w-0 px-1 text-left font-normal">
-        <Link
-          href={`/equipos/${team.id}`}
-          className="flex items-center gap-2 hover:text-accent"
-        >
-          <TeamLogo url={team.logoUrl} size={24} className="size-6 shrink-0 object-contain" />
-          <span
-            title={team.fullName}
-            className={`truncate text-sm font-semibold ${isOut ? "text-muted" : ""}`}
+        <div className="flex items-center gap-0.5">
+          <Link
+            href={`/equipos/${team.id}`}
+            className="flex min-w-0 flex-1 items-center gap-2 hover:text-accent"
           >
-            {team.name}
-          </span>
-          <span className="sr-only">({ZONES[zone].label})</span>
-        </Link>
+            <TeamLogo url={team.logoUrl} size={24} className="size-6 shrink-0 object-contain" />
+            <span
+              title={team.fullName}
+              className={`truncate text-sm font-semibold ${isOut ? "text-muted" : ""}`}
+            >
+              {team.name}
+            </span>
+            <span className="sr-only">({ZONES[zone].label})</span>
+          </Link>
+          <FavoriteTeamButton
+            team={{ id: team.id, name: team.name }}
+            size="compact"
+          />
+        </div>
       </th>
       <td className={`${STAT_CELL} font-semibold`}>{wins}</td>
       <td className={STAT_CELL}>{losses}</td>

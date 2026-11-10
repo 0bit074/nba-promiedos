@@ -70,6 +70,9 @@ export interface BoxScorePlayer {
   turnovers: string;
   /** Diferencial del equipo con el jugador en cancha, por ejemplo "+12" o "-5". */
   plusMinus: string;
+  /** Posición según la fuente, por ejemplo "G", "F", "C" o "PG". */
+  position: string | null;
+  jersey: string | null;
 }
 
 export interface ShootingStat {
@@ -141,10 +144,10 @@ export interface TeamRoster {
 
 export type StatCategoryId =
   | "points"
-  | "rebounds"
   | "assists"
-  | "steals"
-  | "blocks";
+  | "rebounds"
+  | "blocks"
+  | "threePointers";
 
 export interface StatLeader {
   player: PlayerSummary;
@@ -206,6 +209,22 @@ export interface PlayerProfile {
   recentGames: PlayerGameLogEntry[];
 }
 
+/** Promedios de un equipo en la temporada en curso. */
+export interface TeamSeasonStats {
+  team: Team;
+  gamesPlayed: number;
+  points: number;
+  rebounds: number;
+  assists: number;
+  steals: number;
+  blocks: number;
+  turnovers: number;
+  /** Porcentajes de 0 a 100, por ejemplo 46.3. */
+  fieldGoalPct: number;
+  threePointPct: number;
+  freeThrowPct: number;
+}
+
 /** Contrato que implementa cada fuente de datos. */
 export interface NbaDataProvider {
   /** @param date Jornada NBA en formato YYYY-MM-DD. */
@@ -220,4 +239,6 @@ export interface NbaDataProvider {
   getPlayerProfile(id: string): Promise<PlayerProfile | null>;
   /** Devuelve `null` si el equipo no existe. */
   getTeamRoster(teamId: string): Promise<TeamRoster | null>;
+  /** Devuelve `null` si el equipo no existe. */
+  getTeamStats(teamId: string): Promise<TeamSeasonStats | null>;
 }
