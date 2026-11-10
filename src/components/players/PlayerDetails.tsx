@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { TeamLogo } from "@/components/teams/TeamLogo";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { StatusMessage } from "@/components/ui/StatusMessage";
@@ -51,13 +51,7 @@ function PlayerHeader({ player }: { player: PlayerProfile }) {
           <h1 className="text-2xl font-bold">{name}</h1>
           {team ? (
             <p className="mt-1 flex items-center gap-2 text-sm text-muted">
-              <Image
-                src={team.logoUrl}
-                alt=""
-                width={20}
-                height={20}
-                className="size-5 shrink-0 object-contain"
-              />
+              <TeamLogo url={team.logoUrl} size={20} className="size-5 shrink-0 object-contain" />
               <span className="truncate">{team.fullName}</span>
             </p>
           ) : (

@@ -63,6 +63,13 @@ export interface BoxScorePlayer {
   points: number;
   rebounds: string;
   assists: string;
+  /** Tiros de campo encestados / intentados. */
+  fieldGoals: ShootingStat;
+  threePointers: ShootingStat;
+  /** Pérdidas de balón. */
+  turnovers: string;
+  /** Diferencial del equipo con el jugador en cancha, por ejemplo "+12" o "-5". */
+  plusMinus: string;
 }
 
 export interface ShootingStat {

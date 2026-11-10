@@ -1,5 +1,5 @@
 import { Video } from "lucide-react";
-import Image from "next/image";
+import { TeamLogo } from "@/components/teams/TeamLogo";
 import Link from "next/link";
 import type { Game, GameCompetitor } from "@/lib/nba";
 import { getGameStatusLabel, getHighlightsUrl } from "@/lib/nba/format";
@@ -18,13 +18,7 @@ function TeamRow({ competitor, isDimmed, pointsUnit }: TeamRowProps) {
 
   return (
     <div className="flex h-14 items-center gap-2.5 px-3">
-      <Image
-        src={team.logoUrl}
-        alt=""
-        width={28}
-        height={28}
-        className="size-7 shrink-0 object-contain"
-      />
+      <TeamLogo url={team.logoUrl} size={28} className="size-7 shrink-0 object-contain" />
       <div className="min-w-0 flex-1">
         <p className="flex items-baseline gap-2">
           <span

@@ -10,9 +10,9 @@ interface TeamStreakStyle {
 function getTeamStreakStyle(streak: number): TeamStreakStyle {
   if (streak >= 10) {
     return {
-      textClass: "font-bold text-blue-400",
+      textClass: "font-bold text-blue-600 dark:text-blue-400",
       icon: Flame,
-      iconClass: "text-blue-400",
+      iconClass: "text-blue-600 dark:text-blue-400",
     };
   }
 
@@ -36,7 +36,7 @@ function getTeamStreakStyle(streak: number): TeamStreakStyle {
     return {
       textClass: "font-semibold text-muted",
       icon: Skull,
-      iconClass: "text-neutral-300",
+      iconClass: "text-neutral-500 dark:text-neutral-300",
     };
   }
 

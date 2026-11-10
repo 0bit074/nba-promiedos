@@ -87,3 +87,17 @@ export function formatTime(isoDate: string, timeZone?: string) {
     timeZone,
   }).format(new Date(isoDate));
 }
+
+const MINUTE_IN_MS = 60_000;
+
+/** Tiempo transcurrido, por ejemplo "Hace 15 min", "Hace 2h" o "Hace 3 d". */
+export function formatTimeAgo(isoDate: string, now = Date.now()) {
+  const minutes = Math.floor((now - new Date(isoDate).getTime()) / MINUTE_IN_MS);
+  if (minutes < 1) return "Recién";
+  if (minutes < 60) return `Hace ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Hace ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `Hace ${days} d`;
+  return formatGameDay(isoDate);
+}

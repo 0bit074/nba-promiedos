@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   ListOrdered,
+  Newspaper,
   Target,
   Users,
   type LucideIcon,
@@ -29,4 +30,5 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/jugadores", label: "Jugadores", icon: Users },
   { href: "/pickem", label: "Pick'em", icon: Target },
+  { href: "/noticias", label: "Noticias", icon: Newspaper },
 ];
