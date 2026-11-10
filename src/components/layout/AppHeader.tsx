@@ -3,6 +3,7 @@ import { OfflineBanner } from "@/components/pwa/OfflineBanner";
 import { PushNotifications } from "@/components/pwa/PushNotifications";
 import { APP_NAME } from "@/lib/site";
 import { DesktopNav } from "./navigation";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function AppHeader() {
   return (
@@ -18,6 +19,7 @@ export function AppHeader() {
         <div className="flex items-center gap-2">
           <DesktopNav />
           <PushNotifications />
+          <ThemeToggle />
         </div>
       </div>
       <OfflineBanner />

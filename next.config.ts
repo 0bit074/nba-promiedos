@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       new URL("https://a.espncdn.com/i/teamlogos/nba/**"),
       new URL("https://a.espncdn.com/i/headshots/nba/players/**"),
+      // Fotos de las noticias.
+      new URL("https://a.espncdn.com/photo/**"),
+      new URL("https://espnmedia-cdn.akamaized.net/espn/media/**"),
     ],
   },
   async headers() {

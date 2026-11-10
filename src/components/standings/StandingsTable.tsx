@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { TeamLogo } from "@/components/teams/TeamLogo";
 import Link from "next/link";
 import type { TeamStanding } from "@/lib/nba";
 import { getStandingZone, type StandingZone } from "@/lib/nba/format";
@@ -59,13 +59,7 @@ function StandingRow({
           href={`/equipos/${team.id}`}
           className="flex items-center gap-2 hover:text-accent"
         >
-          <Image
-            src={team.logoUrl}
-            alt=""
-            width={24}
-            height={24}
-            className="size-6 shrink-0 object-contain"
-          />
+          <TeamLogo url={team.logoUrl} size={24} className="size-6 shrink-0 object-contain" />
           <span
             title={team.fullName}
             className={`truncate text-sm font-semibold ${isOut ? "text-muted" : ""}`}

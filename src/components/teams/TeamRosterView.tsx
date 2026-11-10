@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { TeamLogo } from "@/components/teams/TeamLogo";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { PlayerRow } from "@/components/players/PlayerRow";
@@ -39,13 +39,7 @@ export async function TeamRosterView({
   return (
     <div className="space-y-4">
       <header className="flex items-center gap-3">
-        <Image
-          src={team.logoUrl}
-          alt=""
-          width={48}
-          height={48}
-          className="size-12 shrink-0 object-contain"
-        />
+        <TeamLogo url={team.logoUrl} size={48} className="size-12 shrink-0 object-contain" />
         <h1 className="min-w-0 text-2xl font-bold">{team.fullName}</h1>
       </header>
       <section>

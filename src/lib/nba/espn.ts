@@ -546,6 +546,12 @@ function toBoxScorePlayer(
     points: Number(getStat("points")) || 0,
     rebounds: getStat("rebounds"),
     assists: getStat("assists"),
+    fieldGoals: parseShooting(getStat("fieldGoalsMade-fieldGoalsAttempted")),
+    threePointers: parseShooting(
+      getStat("threePointFieldGoalsMade-threePointFieldGoalsAttempted"),
+    ),
+    turnovers: getStat("turnovers"),
+    plusMinus: getStat("plusMinus"),
   };
 }
 

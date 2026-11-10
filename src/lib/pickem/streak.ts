@@ -44,7 +44,7 @@ export function getStreakBadge(streak: number): StreakBadgeData | null {
   if (streak <= -5) {
     return {
       icon: Skull,
-      colorClass: "text-neutral-300",
+      colorClass: "text-neutral-500 dark:text-neutral-300",
       label: `${count} fallos seguidos`,
     };
   }

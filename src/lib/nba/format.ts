@@ -40,6 +40,18 @@ export function getShootingPercent({ made, attempted }: ShootingStat) {
   return Math.round((made / attempted) * 1000) / 10;
 }
 
+/** Por ejemplo "7-15". */
+export function formatShooting({ made, attempted }: ShootingStat) {
+  return `${made}-${attempted}`;
+}
+
+/** Siempre con signo: "+12", "-5" o "0"; "-" si no hay dato. */
+export function formatPlusMinus(value: string) {
+  const number = Number(value);
+  if (value.trim() === "" || value === "-" || Number.isNaN(number)) return "-";
+  return number > 0 ? `+${number}` : String(number);
+}
+
 export type StandingZone = "playoffs" | "play-in" | "out";
 
 /** Del 1 al 6 clasifican directo; del 7 al 10 juegan el Play-In. */

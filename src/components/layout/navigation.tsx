@@ -51,7 +51,7 @@ function DesktopNavLinks({ pathname }: NavLinksProps) {
 
 function MobileNavLinks({ pathname }: NavLinksProps) {
   return (
-    <ul className="grid grid-cols-4">
+    <ul className="grid grid-cols-5">
       {NAV_ITEMS.map(({ href, label, icon: Icon, relatedPath }) => {
         const isActive = isActivePath(pathname, href, relatedPath);
         return (

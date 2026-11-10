@@ -307,16 +307,29 @@ function getMockGames(date: string) {
 }
 
 function createBoxScore(prefix: string, topPoints: number): TeamBoxScore {
-  const players = Array.from({ length: 9 }, (_, index): BoxScorePlayer => ({
-    id: String((index % 5) + 1),
-    name: `${prefix} Jugador ${index + 1}`,
-    isStarter: index < 5,
-    didNotPlay: index === 8,
-    minutes: index === 8 ? "-" : String(36 - index * 3),
-    points: index === 8 ? 0 : Math.max(topPoints - index * 4, 0),
-    rebounds: index === 8 ? "-" : String(9 - index),
-    assists: index === 8 ? "-" : String((index * 3) % 7),
-  }));
+  const players = Array.from({ length: 9 }, (_, index): BoxScorePlayer => {
+    const didNotPlay = index === 8;
+    const points = didNotPlay ? 0 : Math.max(topPoints - index * 4, 0);
+    const threesMade = didNotPlay ? 0 : (index * 2) % 4;
+    const plusMinus = 8 - index * 3;
+
+    return {
+      id: String((index % 5) + 1),
+      name: `${prefix} Jugador ${index + 1}`,
+      isStarter: index < 5,
+      didNotPlay,
+      minutes: didNotPlay ? "-" : String(36 - index * 3),
+      points,
+      rebounds: didNotPlay ? "-" : String(9 - index),
+      assists: didNotPlay ? "-" : String((index * 3) % 7),
+      fieldGoals: didNotPlay
+        ? { made: 0, attempted: 0 }
+        : { made: Math.round(points / 2.4), attempted: Math.round(points / 2.4) * 2 + 1 },
+      threePointers: { made: threesMade, attempted: didNotPlay ? 0 : threesMade + 3 },
+      turnovers: didNotPlay ? "-" : String(index % 4),
+      plusMinus: didNotPlay ? "-" : plusMinus > 0 ? `+${plusMinus}` : String(plusMinus),
+    };
+  });
 
   return {
     players,

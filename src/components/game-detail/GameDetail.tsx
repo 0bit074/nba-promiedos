@@ -1,5 +1,5 @@
 import { ChevronLeft, Flame } from "lucide-react";
-import Image from "next/image";
+import { TeamLogo } from "@/components/teams/TeamLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -30,13 +30,7 @@ function TeamHeader({ competitor }: { competitor: GameCompetitor }) {
 
   return (
     <div className="flex min-w-0 flex-col items-center gap-1 text-center">
-      <Image
-        src={team.logoUrl}
-        alt=""
-        width={48}
-        height={48}
-        className="size-12 object-contain"
-      />
+      <TeamLogo url={team.logoUrl} size={48} className="size-12 object-contain" />
       <p className="w-full text-sm leading-tight font-semibold" title={team.fullName}>
         {team.name}
       </p>
@@ -114,8 +108,9 @@ function GameDetailContent({ detail }: { detail: GameDetailData }) {
         />
       }
       players={
-        <div>
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="@container">
+          {/* Lado a lado sólo si cada tabla entra sin scroll horizontal. */}
+          <div className="grid gap-4 @5xl:grid-cols-2">
             <BoxScoreTable
               team={game.away.team}
               players={boxScores.away.players}
