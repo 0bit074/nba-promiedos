@@ -5,37 +5,18 @@ import {
   getStatLeaders,
   searchPlayers,
   type PlayerSummary,
-  type StatCategoryId,
   type StatLeaderCategory,
 } from "@/lib/nba";
+import { LeaderCard } from "./LeaderCard";
 import { PlayerRow } from "./PlayerRow";
-
-const CATEGORY_TITLES: Record<StatCategoryId, string> = {
-  points: "Puntos por partido",
-  rebounds: "Rebotes por partido",
-  assists: "Asistencias por partido",
-  steals: "Robos por partido",
-  blocks: "Tapones por partido",
-};
+import { PlayerSearchForm } from "./PlayerSearch";
+import { getPlayersTab, PlayersTabs } from "./PlayersTabs";
 
 function StatLeaders({ categories }: { categories: StatLeaderCategory[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {categories.map(({ id, leaders }) => (
-        <section key={id}>
-          <h2 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
-            {CATEGORY_TITLES[id]}
-          </h2>
-          <ol className="divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
-            {leaders.map(({ player, value }) => (
-              <li key={player.id}>
-                <PlayerRow player={player}>
-                  <span className="text-lg font-bold tabular-nums">{value}</span>
-                </PlayerRow>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <LeaderCard key={id} id={id} leaders={leaders} />
       ))}
     </div>
   );
@@ -62,17 +43,9 @@ function PlayerResults({
 
   return (
     <section>
-      <div className="mb-2 flex items-baseline justify-between gap-4">
-        <h2 className="min-w-0 truncate text-xs font-semibold tracking-wide text-muted uppercase">
-          Resultados para “{query}” ({players.length})
-        </h2>
-        <Link
-          href="/jugadores"
-          className="shrink-0 text-xs font-medium text-accent"
-        >
-          Ver líderes
-        </Link>
-      </div>
+      <h2 className="mb-2 truncate text-xs font-semibold tracking-wide text-muted uppercase">
+        Resultados para “{query}” ({players.length})
+      </h2>
       <ul className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
         {players.map((player) => (
           <li
@@ -87,54 +60,90 @@ function PlayerResults({
   );
 }
 
-interface PlayersBoardProps {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+const LOAD_ERROR = (
+  <StatusMessage title="No pudimos cargar los jugadores">
+    Vuelve a intentarlo en unos minutos.
+  </StatusMessage>
+);
+
+async function SearchTab({ query }: { query: string }) {
+  let players: PlayerSummary[] = [];
+  if (query) {
+    try {
+      players = await searchPlayers(query);
+    } catch (error) {
+      console.error("No se pudieron buscar jugadores", error);
+      return LOAD_ERROR;
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* La clave reinicia el campo al navegar entre búsquedas. */}
+      <PlayerSearchForm key={query} defaultQuery={query} autoFocus={!query} />
+      {query ? (
+        <PlayerResults query={query} players={players} />
+      ) : (
+        <p className="text-sm text-muted">
+          Escribe al menos 2 letras para ver sugerencias mientras escribes.
+        </p>
+      )}
+    </div>
+  );
 }
 
-/** Resultados de la búsqueda o, si no hay una, los líderes de la liga. */
-export async function PlayersBoard({ searchParams }: PlayersBoardProps) {
-  const { q } = await searchParams;
-  await connection();
-
-  const query = typeof q === "string" ? q.trim() : "";
-
-  let players: PlayerSummary[] = [];
-  let categories: StatLeaderCategory[] = [];
+async function LeadersTab() {
+  let categories: StatLeaderCategory[];
   try {
-    if (query) {
-      players = await searchPlayers(query);
-    } else {
-      categories = await getStatLeaders();
-    }
+    categories = await getStatLeaders();
   } catch (error) {
-    console.error("No se pudieron cargar los jugadores", error);
+    console.error("No se pudieron cargar los líderes", error);
+    return LOAD_ERROR;
+  }
+
+  if (categories.length === 0) {
     return (
-      <StatusMessage title="No pudimos cargar los jugadores">
-        Vuelve a intentarlo en unos minutos.
+      <StatusMessage title="Todavía no hay líderes">
+        Aparecerán cuando avance la temporada.
       </StatusMessage>
     );
   }
 
-  return query ? (
-    <PlayerResults query={query} players={players} />
-  ) : (
-    <StatLeaders categories={categories} />
+  return <StatLeaders categories={categories} />;
+}
+
+interface PlayersBoardProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/** Pestañas de /jugadores: los líderes de la liga o el buscador. */
+export async function PlayersBoard({ searchParams }: PlayersBoardProps) {
+  const params = await searchParams;
+  await connection();
+
+  const tab = getPlayersTab(params);
+  const query = typeof params.q === "string" ? params.q.trim() : "";
+
+  return (
+    <div className="space-y-4">
+      <PlayersTabs active={tab} />
+      {tab === "search" ? <SearchTab query={query} /> : <LeadersTab />}
+    </div>
   );
 }
 
 export function PlayersBoardSkeleton() {
   return (
-    <div
-      aria-busy
-      aria-label="Cargando jugadores"
-      className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-    >
-      {Array.from({ length: 6 }, (_, index) => (
-        <div
-          key={index}
-          className="h-72 animate-pulse rounded-lg border border-line bg-surface"
-        />
-      ))}
+    <div aria-busy aria-label="Cargando jugadores" className="space-y-4">
+      <div className="h-11 animate-pulse rounded-lg bg-surface sm:w-72" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <div
+            key={index}
+            className="h-80 animate-pulse rounded-lg border border-line bg-surface"
+          />
+        ))}
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import {
   CalendarDays,
   ListOrdered,
   Newspaper,
-  Target,
+  Swords,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -29,6 +29,6 @@ export const NAV_ITEMS: NavItem[] = [
     relatedPath: "/equipos",
   },
   { href: "/jugadores", label: "Jugadores", icon: Users },
-  { href: "/pickem", label: "Pick'em", icon: Target },
+  { href: "/comparador", label: "Comparador", icon: Swords },
   { href: "/noticias", label: "Noticias", icon: Newspaper },
 ];

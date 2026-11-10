@@ -2,34 +2,12 @@ import { connection } from "next/server";
 import { StatusMessage } from "@/components/ui/StatusMessage";
 import { getNbaToday, resolveDate } from "@/lib/dates";
 import { getGamesByDate, isGameOver, type Game } from "@/lib/nba";
+import { FixtureView, type FixtureItem, type FixtureSection } from "./FixtureView";
 import { GameCard } from "./GameCard";
 import { LiveRefresher } from "./LiveRefresher";
 
 const LIVE_REFRESH_MS = 30_000;
 const PENDING_REFRESH_MS = 60_000;
-
-interface GameSectionProps {
-  title: string;
-  games: Game[];
-  detailQuery: string;
-}
-
-function GameSection({ title, games, detailQuery }: GameSectionProps) {
-  if (games.length === 0) return null;
-
-  return (
-    <section>
-      <h2 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
-        {title} ({games.length})
-      </h2>
-      <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-        {games.map((game) => (
-          <GameCard key={game.id} game={game} detailQuery={detailQuery} />
-        ))}
-      </div>
-    </section>
-  );
-}
 
 interface GameBoardProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -76,21 +54,25 @@ export async function GameBoard({ searchParams }: GameBoardProps) {
         ? PENDING_REFRESH_MS
         : null;
 
+  const toItems = (list: Game[], section: FixtureSection): FixtureItem[] =>
+    list.map((game) => ({
+      id: game.id,
+      section,
+      teamIds: [game.home.team.id, game.away.team.id],
+      card: <GameCard game={game} detailQuery={detailQuery} />,
+    }));
+
   return (
-    <div className="space-y-6">
+    <>
       {refreshInterval && <LiveRefresher intervalMs={refreshInterval} />}
-      <GameSection title="En vivo" games={liveGames} detailQuery={detailQuery} />
-      <GameSection
-        title="Próximos"
-        games={upcomingGames}
-        detailQuery={detailQuery}
+      <FixtureView
+        items={[
+          ...toItems(liveGames, "live"),
+          ...toItems(upcomingGames, "upcoming"),
+          ...toItems(finishedGames, "finished"),
+        ]}
       />
-      <GameSection
-        title="Finalizados"
-        games={finishedGames}
-        detailQuery={detailQuery}
-      />
-    </div>
+    </>
   );
 }
 

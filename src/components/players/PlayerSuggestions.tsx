@@ -15,7 +15,8 @@ const DEBOUNCE_MS = 250;
 /** Resultados ya pedidos en esta visita, por texto normalizado. */
 const resultsCache = new Map<string, PlayerSummary[]>();
 
-function normalize(text: string) {
+/** Minúsculas y sin tildes, para comparar búsquedas. */
+export function normalize(text: string) {
   return text
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
@@ -138,6 +139,11 @@ interface SuggestionsListProps {
   getOptionId: (index: number) => string;
   /** Se llama al elegir un jugador, para cerrar la lista. */
   onSelect: () => void;
+  /**
+   * Si está, elegir un jugador lo devuelve en vez de abrir su ficha (por
+   * ejemplo, en el comparador).
+   */
+  onPick?: (player: PlayerSummary) => void;
 }
 
 const MESSAGES: Partial<Record<SuggestionsStatus, string>> = {
@@ -154,6 +160,7 @@ export function SuggestionsList({
   activeIndex,
   getOptionId,
   onSelect,
+  onPick,
 }: SuggestionsListProps) {
   const message =
     MESSAGES[status] ??
@@ -183,35 +190,56 @@ export function SuggestionsList({
             .filter(Boolean)
             .join(" · ");
           const isActive = index === activeIndex;
+          const optionProps = {
+            id: getOptionId(index),
+            role: "option",
+            "aria-selected": isActive,
+            className: `flex h-14 w-full items-center gap-3 px-3 text-left transition-colors hover:bg-surface-raised ${
+              isActive ? "bg-surface-raised" : ""
+            }`,
+          } as const;
+          const content = (
+            <>
+              <PlayerAvatar
+                name={player.name}
+                url={player.headshotUrl}
+                size={32}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">
+                  <HighlightedName name={player.name} query={query} />
+                </span>
+                {details && (
+                  <span className="block truncate text-xs text-muted">
+                    {details}
+                  </span>
+                )}
+              </span>
+            </>
+          );
 
           return (
             <li key={player.id} role="presentation">
-              <Link
-                id={getOptionId(index)}
-                role="option"
-                aria-selected={isActive}
-                href={`/jugadores/${player.id}`}
-                onClick={onSelect}
-                className={`flex h-14 items-center gap-3 px-3 transition-colors hover:bg-surface-raised ${
-                  isActive ? "bg-surface-raised" : ""
-                }`}
-              >
-                <PlayerAvatar
-                  name={player.name}
-                  url={player.headshotUrl}
-                  size={32}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold">
-                    <HighlightedName name={player.name} query={query} />
-                  </span>
-                  {details && (
-                    <span className="block truncate text-xs text-muted">
-                      {details}
-                    </span>
-                  )}
-                </span>
-              </Link>
+              {onPick ? (
+                <button
+                  type="button"
+                  {...optionProps}
+                  onClick={() => {
+                    onSelect();
+                    onPick(player);
+                  }}
+                >
+                  {content}
+                </button>
+              ) : (
+                <Link
+                  {...optionProps}
+                  href={`/jugadores/${player.id}`}
+                  onClick={onSelect}
+                >
+                  {content}
+                </Link>
+              )}
             </li>
           );
         })}
@@ -221,7 +249,7 @@ export function SuggestionsList({
           {message}
         </p>
       )}
-      {status !== "short" && players.length > 0 && (
+      {!onPick && status !== "short" && players.length > 0 && (
         <button
           type="submit"
           className="block w-full border-t border-line px-3 py-2.5 text-left text-xs font-medium text-accent hover:bg-surface-raised"

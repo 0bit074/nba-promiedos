@@ -284,10 +284,10 @@ function toMockSummary({
 
 const MOCK_STAT_CATEGORIES: StatCategoryId[] = [
   "points",
-  "rebounds",
   "assists",
-  "steals",
+  "rebounds",
   "blocks",
+  "threePointers",
 ];
 
 function getMockGames(date: string) {
@@ -328,6 +328,8 @@ function createBoxScore(prefix: string, topPoints: number): TeamBoxScore {
       threePointers: { made: threesMade, attempted: didNotPlay ? 0 : threesMade + 3 },
       turnovers: didNotPlay ? "-" : String(index % 4),
       plusMinus: didNotPlay ? "-" : plusMinus > 0 ? `+${plusMinus}` : String(plusMinus),
+      position: (["G", "G", "F", "F", "C", "G", "F", "C", "G"] as const)[index],
+      jersey: String(index * 7 + 1),
     };
   });
 
@@ -400,6 +402,27 @@ export const mockProvider: NbaDataProvider = {
         teamName: null,
         jersey: player.jersey,
       })),
+    };
+  },
+
+  async getTeamStats(teamId) {
+    const teamData = Object.values(TEAMS).find(({ id }) => id === teamId);
+    if (!teamData) return null;
+
+    // Valores estables por equipo, para que la comparación tenga diferencias.
+    const seed = Number(teamId) || teamId.length;
+    return {
+      team: teamData,
+      gamesPlayed: 12,
+      points: 108 + (seed % 9),
+      rebounds: 41 + (seed % 6),
+      assists: 23 + (seed % 7),
+      steals: 7 + (seed % 3),
+      blocks: 4 + (seed % 3),
+      turnovers: 12 + (seed % 4),
+      fieldGoalPct: 44 + (seed % 5),
+      threePointPct: 34 + (seed % 4),
+      freeThrowPct: 76 + (seed % 6),
     };
   },
 };

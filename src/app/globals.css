@@ -17,6 +17,8 @@
   --color-win: #4ade80;
   --color-zone-playoffs: #4ade80;
   --color-zone-play-in: #fbbf24;
+  /* Segundo lado del comparador (el primero usa accent). */
+  --color-rival: #38bdf8;
 }
 
 :root {
@@ -38,6 +40,7 @@
   --color-win: #15803d;
   --color-zone-playoffs: #16a34a;
   --color-zone-play-in: #d97706;
+  --color-rival: #0284c7;
 }
 
 body {
