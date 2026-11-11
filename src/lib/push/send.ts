@@ -3,20 +3,34 @@ import { sendNotification, setVapidDetails, WebPushError } from "web-push";
 import { VAPID_PUBLIC_KEY } from "@/lib/site";
 import type { PushRecord } from "./store";
 
+/** Quita espacios y comillas que suelen colarse al pegar en Vercel. */
+function readEnv(name: string) {
+  return process.env[name]?.trim().replace(/^["']|["']$/g, "") || undefined;
+}
+
 /** Identifica al remitente ante los servicios push (no hace falta un email). */
-const VAPID_SUBJECT =
-  process.env.VAPID_SUBJECT || "https://nba-promiedos-gamma.vercel.app";
+function getVapidSubject() {
+  const subject = readEnv("VAPID_SUBJECT");
+  if (!subject) return "https://nba-promiedos-gamma.vercel.app";
+  // Un email suelto no es válido para web-push: necesita "mailto:".
+  return subject.includes("@") && !subject.includes(":") ? `mailto:${subject}` : subject;
+}
 
 let isConfigured = false;
 
-/** `false` si falta la clave privada: no se puede enviar nada. */
-export function configureWebPush() {
-  if (isConfigured) return true;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  if (!privateKey) return false;
-  setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, privateKey);
+/** `null` si quedó configurado; si no, el motivo para mostrarlo en la respuesta. */
+export function configureWebPush(): string | null {
+  if (isConfigured) return null;
+  const privateKey = readEnv("VAPID_PRIVATE_KEY");
+  if (!privateKey) return "Falta VAPID_PRIVATE_KEY.";
+  try {
+    setVapidDetails(getVapidSubject(), VAPID_PUBLIC_KEY, privateKey);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    return `VAPID inválido (revisa VAPID_PRIVATE_KEY y VAPID_SUBJECT): ${reason}`;
+  }
   isConfigured = true;
-  return true;
+  return null;
 }
 
 export interface PushMessage {
