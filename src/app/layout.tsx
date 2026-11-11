@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { MobileNav } from "@/components/layout/navigation";
+import { PushSync } from "@/components/pwa/PushSync";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { APP_DESCRIPTION, APP_NAME, THEME_COLOR } from "@/lib/site";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
@@ -48,6 +49,7 @@ export default function RootLayout({ children, modal }: LayoutProps<"/">) {
         <MobileNav />
         {modal}
         <ServiceWorkerRegister />
+        <PushSync />
         <Analytics />
       </body>
     </html>
