@@ -33,8 +33,9 @@ export async function GET(request: NextRequest) {
   if (!store) {
     return Response.json({ error: "Falta la base de datos (Redis)." }, { status: 503 });
   }
-  if (!dryRun && !configureWebPush()) {
-    return Response.json({ error: "Falta VAPID_PRIVATE_KEY." }, { status: 503 });
+  const vapidError = dryRun ? null : configureWebPush();
+  if (vapidError) {
+    return Response.json({ error: vapidError }, { status: 503 });
   }
 
   try {
