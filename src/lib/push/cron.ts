@@ -1,7 +1,7 @@
 // Solo lo importa el route handler de /api/push/cron (servidor).
 import { addDays, formatTime, getNbaToday } from "@/lib/dates";
 import { getLiveScoreKey, toLiveScoreUpdate } from "@/lib/live-score";
-import { getGamesByDate, type Game } from "@/lib/nba";
+import { getGamesByDate, getGamesByDateFresh, type Game } from "@/lib/nba";
 import { runWithLimit, sendPush, type PushMessage, type SendResult } from "./send";
 import type { PushRecord, PushStore } from "./store";
 
@@ -21,6 +21,8 @@ interface Delivery {
 
 export interface CronSummary {
   liveGames: number;
+  /** Partidos en juego que alguien sigue: si hay, conviene volver a revisar pronto. */
+  followedLiveGames: number;
   deliveries: { kind: Delivery["kind"]; title: string; to: number }[];
   sent: number;
   failed: number;
@@ -70,19 +72,27 @@ function buildReminder(record: PushRecord, games: Game[], date: string): PushMes
   };
 }
 
+interface CronOptions {
+  dryRun?: boolean;
+  now?: Date;
+  /** Solo el marcador en vivo, con datos recién pedidos (rondas cada 15 s). */
+  liveOnly?: boolean;
+}
+
 /**
  * Lo que corre cada minuto: marcador en vivo de los partidos seguidos (solo
  * si cambió) y, una vez por día, el recordatorio de los equipos favoritos.
  */
 export async function runPushCron(
   store: PushStore,
-  { dryRun = false, now = new Date() } = {},
+  { dryRun = false, now = new Date(), liveOnly = false }: CronOptions = {},
 ): Promise<CronSummary> {
   const today = getNbaToday();
+  const fetchGames = liveOnly ? getGamesByDateFresh : getGamesByDate;
   // Los partidos de la jornada anterior pueden seguir en juego después de medianoche.
   const [todayGames, yesterdayGames] = await Promise.all([
-    getGamesByDate(today),
-    getGamesByDate(addDays(today, -1)),
+    fetchGames(today),
+    fetchGames(addDays(today, -1)),
   ]);
   const games = [...yesterdayGames, ...todayGames];
   const records = await store.list();
@@ -92,9 +102,11 @@ export async function runPushCron(
 
   // 1. Marcador en vivo.
   const liveGames = games.filter((game) => game.status === "live" || game.status === "final");
+  let followedLiveGames = 0;
   for (const game of liveGames) {
     const followers = records.filter((record) => record.followedGameIds.includes(game.id));
     if (followers.length === 0) continue;
+    if (game.status === "live") followedLiveGames++;
 
     const update = toLiveScoreUpdate(game);
     if (!update) continue;
@@ -115,7 +127,7 @@ export async function runPushCron(
   }
 
   // 2. Recordatorio del día de los favoritos.
-  for (const record of records) {
+  for (const record of liveOnly ? [] : records) {
     if (record.favoriteTeamIds.length === 0) continue;
     const { date, hour } = getLocalDateAndHour(record.timeZone, now);
     if (hour < REMINDER_HOUR || record.lastReminderDate === date) continue;
@@ -137,6 +149,7 @@ export async function runPushCron(
 
   const summary: CronSummary = {
     liveGames: liveGames.filter((game) => game.status === "live").length,
+    followedLiveGames,
     deliveries: summarize(deliveries, games),
     sent: 0,
     failed: 0,
