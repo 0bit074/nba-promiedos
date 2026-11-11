@@ -3,6 +3,7 @@ import { TeamLogo } from "@/components/teams/TeamLogo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { FollowGameButton } from "@/components/games/FollowGameButton";
 import { LiveRefresher } from "@/components/games/LiveRefresher";
 import { GameTime } from "@/components/games/GameTime";
 import { StatusMessage } from "@/components/ui/StatusMessage";
@@ -18,7 +19,6 @@ import { BoxScoreTable } from "./BoxScoreTable";
 import { GameDetailTabs } from "./GameDetailTabs";
 import { GameStatsComparison } from "./GameStatsComparison";
 import { LineupCourt } from "./LineupCourt";
-import { LiveScoreSimulator } from "./LiveScoreSimulator";
 
 const LIVE_REFRESH_MS = 30_000;
 
@@ -81,6 +81,16 @@ function GameHeader({ game }: { game: Game }) {
           </p>
         )}
         <GameStatusLine game={game} />
+        {(game.status === "scheduled" || game.status === "live") && (
+          <div className="mt-2 flex justify-center">
+            <FollowGameButton
+              gameId={game.id}
+              startTime={game.startTime}
+              matchup={`${home.team.name} vs ${away.team.name}`}
+              size="default"
+            />
+          </div>
+        )}
       </div>
       <TeamHeader competitor={home} />
     </header>
@@ -188,11 +198,6 @@ export async function GameDetail({ params, showBackLink = false }: GameDetailPro
       {game.status === "live" && <LiveRefresher intervalMs={LIVE_REFRESH_MS} />}
       <GameHeader game={game} />
       <GameDetailContent detail={detail} />
-      <LiveScoreSimulator
-        gameId={game.id}
-        awayAbbr={game.away.team.abbreviation}
-        homeAbbr={game.home.team.abbreviation}
-      />
     </div>
   );
 }

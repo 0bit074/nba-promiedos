@@ -3,6 +3,7 @@ import { TeamLogo } from "@/components/teams/TeamLogo";
 import Link from "next/link";
 import type { Game, GameCompetitor } from "@/lib/nba";
 import { getGameStatusLabel, getHighlightsUrl } from "@/lib/nba/format";
+import { FollowGameButton } from "./FollowGameButton";
 import { GameTime } from "./GameTime";
 
 interface TeamRowProps {
@@ -56,6 +57,16 @@ function TeamRow({ competitor, isDimmed, pointsUnit }: TeamRowProps) {
   );
 }
 
+function FollowButton({ game }: { game: Game }) {
+  return (
+    <FollowGameButton
+      gameId={game.id}
+      startTime={game.startTime}
+      matchup={`${game.home.team.name} vs ${game.away.team.name}`}
+    />
+  );
+}
+
 function GameStatusPanel({ game }: { game: Game }) {
   if (game.status === "scheduled") {
     return (
@@ -68,6 +79,7 @@ function GameStatusPanel({ game }: { game: Game }) {
             {game.broadcast}
           </span>
         )}
+        <FollowButton game={game} />
       </>
     );
   }
@@ -89,6 +101,7 @@ function GameStatusPanel({ game }: { game: Game }) {
             {game.clock}
           </span>
         )}
+        <FollowButton game={game} />
       </>
     );
   }

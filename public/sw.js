@@ -97,10 +97,10 @@ async function notifyClients(message) {
 /* Marcador en vivo                                                    */
 /* ------------------------------------------------------------------ */
 
-// Formato de una actualización (push real o simulador):
-// { type: "live-score", gameId, away: { abbr, score }, home: { abbr, score },
-//   period, clock: "MM:SS", status: "live" | "final", lastPlay? }
-// Mantener el formato del título sincronizado con src/lib/live-score.ts.
+// Formato de una actualización (la envía el servidor por Web Push; ver
+// src/lib/live-score.ts):
+// { type: "live-score", gameId, home: { abbr, score }, away: { abbr, score },
+//   period, clock: "MM:SS", isPeriodBreak, status: "live" | "final" }
 
 function isValidLiveScore(data) {
   const isTeam = (team) =>
@@ -126,18 +126,21 @@ function getPeriodName(period) {
   return overtime === 1 ? "OT" : `${overtime}OT`;
 }
 
-function formatGameTime({ period, clock, status }) {
+function formatGameTime({ period, clock, isPeriodBreak, status }) {
   if (status === "final") {
     return period > 4 ? `Final (${getPeriodName(period)})` : "Final";
   }
-  if (period === 2 && /^0?0:00$/.test(clock)) return "Entretiempo";
+  const isClockAtZero = /^0?0:00$/.test(clock);
+  if (isPeriodBreak || isClockAtZero) {
+    return period === 2 ? "Entretiempo" : `Fin del ${getPeriodName(period)}`;
+  }
   return `${getPeriodName(period)} ${clock}`;
 }
 
-/** Por ejemplo "LAL 108 - 104 BOS • 4º Q 02:45" (visitante primero). */
+/** Por ejemplo "BOS 104 - 108 LAL • 4º Q 02:45" (local primero). */
 function formatLiveScoreTitle(data) {
-  const { away, home } = data;
-  return `${away.abbr} ${away.score} - ${home.score} ${home.abbr} • ${formatGameTime(data)}`;
+  const { home, away } = data;
+  return `${home.abbr} ${home.score} - ${away.score} ${away.abbr} • ${formatGameTime(data)}`;
 }
 
 function getLiveScoreTag(gameId) {
@@ -155,10 +158,7 @@ async function showLiveScore(data) {
 
   await self.registration.showNotification(formatLiveScoreTitle(data), {
     tag,
-    body:
-      typeof data.lastPlay === "string" && data.lastPlay
-        ? data.lastPlay
-        : "Toca para ver el partido",
+    body: isLive ? "Toca para ver el partido" : "Partido terminado",
     icon: ICON_URL,
     badge: BADGE_URL,
     actions: [
@@ -171,13 +171,6 @@ async function showLiveScore(data) {
     timestamp: Date.now(),
     data: { url: `/partidos/${data.gameId}`, gameId: data.gameId },
   });
-}
-
-async function clearLiveScore(gameId) {
-  const notifications = await self.registration.getNotifications({
-    tag: getLiveScoreTag(gameId),
-  });
-  for (const notification of notifications) notification.close();
 }
 
 /* ------------------------------------------------------------------ */
@@ -215,25 +208,13 @@ self.addEventListener("push", (event) => {
   );
 });
 
-// El simulador de la app usa el mismo camino que un push real.
+// Al volver a seguir un partido (campanita), deja de estar silenciado.
 self.addEventListener("message", (event) => {
   if (event.origin && event.origin !== self.location.origin) return;
   const data = event.data ?? {};
 
-  switch (data.type) {
-    case "live-score":
-      event.waitUntil(showLiveScore(data));
-      break;
-    case "live-score-clear":
-      if (typeof data.gameId === "string") {
-        event.waitUntil(clearLiveScore(data.gameId));
-      }
-      break;
-    case "live-score-unmute":
-      if (typeof data.gameId === "string") {
-        event.waitUntil(setGameMuted(data.gameId, false));
-      }
-      break;
+  if (data.type === "live-score-unmute" && typeof data.gameId === "string") {
+    event.waitUntil(setGameMuted(data.gameId, false));
   }
 });
 
@@ -265,9 +246,25 @@ async function openNotificationUrl(url) {
   return self.clients.openWindow(url);
 }
 
+/** Le pide al servidor que deje de enviar este partido a este dispositivo. */
+async function unfollowOnServer(gameId) {
+  const subscription = await self.registration.pushManager.getSubscription();
+  if (!subscription) return;
+  await fetch("/api/push/unfollow", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint: subscription.endpoint, gameId }),
+  });
+}
+
 async function muteGame(gameId) {
   await setGameMuted(gameId, true);
   await notifyClients({ type: "live-score-muted", gameId });
+  try {
+    await unfollowOnServer(gameId);
+  } catch {
+    // Sin conexión: quedan silenciadas en este dispositivo igual.
+  }
 }
 
 self.addEventListener("notificationclick", (event) => {
