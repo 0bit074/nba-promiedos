@@ -1,4 +1,7 @@
-export const APP_NAME = "NBA Rookie";
+export const APP_NAME = "The Rookie App";
+
+/** Nombre corto del ícono instalado: 12 caracteres o menos. */
+export const APP_SHORT_NAME = "Rookie App";
 
 export const APP_DESCRIPTION =
   "Marcadores en vivo, fixture, posiciones y estadísticas de la NBA.";

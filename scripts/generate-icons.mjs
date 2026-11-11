@@ -1,5 +1,6 @@
 /**
- * Genera todos los iconos de la app a partir de un único diseño.
+ * Genera todos los iconos de la app a partir de un único diseño: las dos
+ * pelotas de básquet que forman las "oo" de "Rookie".
  * Uso: node scripts/generate-icons.mjs
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -8,45 +9,69 @@ import sharp from "sharp";
 const BACKGROUND = "#0a0e14";
 const BALL = "#f97316";
 
+/** Distancia del centro del lienzo al centro de cada pelota (radio 170). */
+const BALL_OFFSET = 150;
+/** La pelota de la derecha lleva un borde del color del fondo que las separa. */
+const SEPARATOR_RADIUS = 186;
+
+/** Costuras de una pelota de radio 170 centrada en el origen. */
+const SEAMS = `<path d="M-170 0H170M0-170V170"/>
+      <path d="M-120-120C-60-60-60 60-120 120"/>
+      <path d="M120-120C60-60 60 60 120 120"/>`;
+
+function ball(x, seamColor) {
+  return `<g transform="translate(${x} 0)">
+    <circle r="170" fill="${BALL}"/>
+    <g fill="none" stroke="${seamColor}" stroke-width="14" stroke-linecap="round">
+      ${SEAMS}
+    </g>
+  </g>`;
+}
+
 /**
  * @param {object} options
  * @param {number} options.radius Redondeo del fondo, sobre un lienzo de 512.
- * @param {number} options.scale Tamaño de la pelota respecto del lienzo.
+ * @param {number} options.scale Tamaño del par de pelotas respecto del lienzo.
  */
 function createIconSvg({ radius, scale }) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="${radius}" fill="${BACKGROUND}"/>
   <g transform="translate(256 256) scale(${scale})">
-    <circle r="170" fill="${BALL}"/>
-    <g fill="none" stroke="${BACKGROUND}" stroke-width="14" stroke-linecap="round">
-      <path d="M-170 0H170M0-170V170"/>
-      <path d="M-120-120C-60-60-60 60-120 120"/>
-      <path d="M120-120C60-60 60 60 120 120"/>
-    </g>
+    ${ball(-BALL_OFFSET, BACKGROUND)}
+    <circle cx="${BALL_OFFSET}" r="${SEPARATOR_RADIUS}" fill="${BACKGROUND}"/>
+    ${ball(BALL_OFFSET, BACKGROUND)}
   </g>
 </svg>
 `;
 }
 
-/** Android solo usa la transparencia del badge: el color no se ve. */
+/**
+ * Android solo usa la transparencia del badge: el color no se ve. Las
+ * costuras y la separación entre pelotas quedan caladas.
+ */
 const badgeIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <defs>
-    <mask id="seams">
-      <rect width="512" height="512" fill="white"/>
-      <g transform="translate(256 256) scale(1.4)" fill="none" stroke="black" stroke-width="16" stroke-linecap="round">
-        <path d="M-170 0H170M0-170V170"/>
-        <path d="M-120-120C-60-60-60 60-120 120"/>
-        <path d="M120-120C60-60 60 60 120 120"/>
+    <mask id="balls">
+      <g transform="translate(256 256) scale(0.76)">
+        <circle cx="${-BALL_OFFSET}" r="170" fill="white"/>
+        <g transform="translate(${-BALL_OFFSET} 0)" fill="none" stroke="black" stroke-width="20" stroke-linecap="round">
+          ${SEAMS}
+        </g>
+        <circle cx="${BALL_OFFSET}" r="${SEPARATOR_RADIUS + 6}" fill="black"/>
+        <circle cx="${BALL_OFFSET}" r="170" fill="white"/>
+        <g transform="translate(${BALL_OFFSET} 0)" fill="none" stroke="black" stroke-width="20" stroke-linecap="round">
+          ${SEAMS}
+        </g>
       </g>
     </mask>
   </defs>
-  <circle cx="256" cy="256" r="238" fill="white" mask="url(#seams)"/>
+  <rect width="512" height="512" fill="white" mask="url(#balls)"/>
 </svg>
 `;
 
-const roundedIcon = createIconSvg({ radius: 112, scale: 1.2 });
-// Android recorta los iconos "maskable": la pelota debe quedar en la zona segura.
-const fullBleedIcon = createIconSvg({ radius: 0, scale: 0.95 });
+const roundedIcon = createIconSvg({ radius: 112, scale: 0.68 });
+// Android recorta los iconos "maskable": las pelotas deben quedar en la zona segura.
+const fullBleedIcon = createIconSvg({ radius: 0, scale: 0.6 });
 
 function writePng(svg, size, path) {
   return sharp(Buffer.from(svg)).resize(size, size).png().toFile(path);
