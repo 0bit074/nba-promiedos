@@ -13,7 +13,7 @@ const MOCK_ARTICLES: MockArticle[] = [
     headline: "Los Hawks envían a su escolta titular a los Kings en un cambio de tres equipos",
     summary:
       "Atlanta recibe dos selecciones de primera ronda y un pívot joven, mientras Sacramento suma tirador para pelear por el Play-In.",
-    source: "Redacción NBA Rookie",
+    source: "Redacción The Rookie App",
     involved: ["Atlanta Hawks", "Sacramento Kings"],
     hoursAgo: 0.5,
   },
@@ -43,7 +43,7 @@ const MOCK_ARTICLES: MockArticle[] = [
     headline: "Los Nets firman a un base agente libre por un año",
     summary:
       "El veterano llega para cubrir la baja del armador titular y aportar experiencia a un plantel joven.",
-    source: "Redacción NBA Rookie",
+    source: "Redacción The Rookie App",
     involved: ["Brooklyn Nets"],
     hoursAgo: 7,
   },

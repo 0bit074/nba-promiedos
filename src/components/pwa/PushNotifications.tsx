@@ -54,7 +54,7 @@ async function readPushStatus(): Promise<PushStatus> {
 }
 
 /** El service worker solo existe en producción: `ready` no resolvería en dev. */
-function waitForServiceWorker() {
+export function waitForServiceWorker() {
   return Promise.race([
     navigator.serviceWorker.ready,
     new Promise<never>((_, reject) => {

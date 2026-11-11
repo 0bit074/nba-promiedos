@@ -18,6 +18,7 @@ import { BoxScoreTable } from "./BoxScoreTable";
 import { GameDetailTabs } from "./GameDetailTabs";
 import { GameStatsComparison } from "./GameStatsComparison";
 import { LineupCourt } from "./LineupCourt";
+import { LiveScoreSimulator } from "./LiveScoreSimulator";
 
 const LIVE_REFRESH_MS = 30_000;
 
@@ -187,6 +188,11 @@ export async function GameDetail({ params, showBackLink = false }: GameDetailPro
       {game.status === "live" && <LiveRefresher intervalMs={LIVE_REFRESH_MS} />}
       <GameHeader game={game} />
       <GameDetailContent detail={detail} />
+      <LiveScoreSimulator
+        gameId={game.id}
+        awayAbbr={game.away.team.abbreviation}
+        homeAbbr={game.home.team.abbreviation}
+      />
     </div>
   );
 }

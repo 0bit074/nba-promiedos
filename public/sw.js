@@ -1,8 +1,16 @@
 // Cambiar la versión al modificar los archivos de PRECACHE_URLS.
-const CACHE_NAME = "offline-v2";
+const CACHE_NAME = "offline-v3";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE_URLS = [OFFLINE_URL, "/icons/icon-192.png"];
-const APP_NAME = "NBA Rookie";
+const APP_NAME = "The Rookie App";
+
+const ICON_URL = "/icons/icon-192.png";
+const BADGE_URL = "/icons/badge-96.png";
+
+// Preferencias del service worker (no tiene localStorage). No se borra al
+// actualizar la versión de la caché offline.
+const PREFS_CACHE = "prefs-v1";
+const MUTED_GAMES_KEY = "/__muted-games";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -20,7 +28,7 @@ self.addEventListener("activate", (event) => {
       .then((names) =>
         Promise.all(
           names
-            .filter((name) => name !== CACHE_NAME)
+            .filter((name) => name !== CACHE_NAME && name !== PREFS_CACHE)
             .map((name) => caches.delete(name)),
         ),
       )
@@ -46,6 +54,136 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+/* ------------------------------------------------------------------ */
+/* Partidos silenciados                                                */
+/* ------------------------------------------------------------------ */
+
+async function readMutedGames() {
+  try {
+    const cache = await caches.open(PREFS_CACHE);
+    const response = await cache.match(MUTED_GAMES_KEY);
+    const ids = response ? await response.json() : [];
+    return Array.isArray(ids) ? ids : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeMutedGames(ids) {
+  const cache = await caches.open(PREFS_CACHE);
+  await cache.put(
+    MUTED_GAMES_KEY,
+    new Response(JSON.stringify(ids), {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+}
+
+async function setGameMuted(gameId, isMuted) {
+  const ids = (await readMutedGames()).filter((id) => id !== gameId);
+  await writeMutedGames(isMuted ? [...ids, gameId] : ids);
+}
+
+/** Avisa a las pestañas abiertas (por ejemplo, al simulador). */
+async function notifyClients(message) {
+  const windows = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  for (const client of windows) client.postMessage(message);
+}
+
+/* ------------------------------------------------------------------ */
+/* Marcador en vivo                                                    */
+/* ------------------------------------------------------------------ */
+
+// Formato de una actualización (push real o simulador):
+// { type: "live-score", gameId, away: { abbr, score }, home: { abbr, score },
+//   period, clock: "MM:SS", status: "live" | "final", lastPlay? }
+// Mantener el formato del título sincronizado con src/lib/live-score.ts.
+
+function isValidLiveScore(data) {
+  const isTeam = (team) =>
+    team &&
+    typeof team.abbr === "string" &&
+    team.abbr.length <= 5 &&
+    Number.isFinite(team.score);
+  return (
+    data &&
+    typeof data.gameId === "string" &&
+    /^[\w-]{1,20}$/.test(data.gameId) &&
+    isTeam(data.away) &&
+    isTeam(data.home) &&
+    Number.isInteger(data.period) &&
+    data.period >= 1 &&
+    typeof data.clock === "string"
+  );
+}
+
+function getPeriodName(period) {
+  if (period <= 4) return `${period}º Q`;
+  const overtime = period - 4;
+  return overtime === 1 ? "OT" : `${overtime}OT`;
+}
+
+function formatGameTime({ period, clock, status }) {
+  if (status === "final") {
+    return period > 4 ? `Final (${getPeriodName(period)})` : "Final";
+  }
+  if (period === 2 && /^0?0:00$/.test(clock)) return "Entretiempo";
+  return `${getPeriodName(period)} ${clock}`;
+}
+
+/** Por ejemplo "LAL 108 - 104 BOS • 4º Q 02:45" (visitante primero). */
+function formatLiveScoreTitle(data) {
+  const { away, home } = data;
+  return `${away.abbr} ${away.score} - ${home.score} ${home.abbr} • ${formatGameTime(data)}`;
+}
+
+function getLiveScoreTag(gameId) {
+  return `live-match-${gameId}`;
+}
+
+async function showLiveScore(data) {
+  if (!isValidLiveScore(data)) return;
+  if ((await readMutedGames()).includes(data.gameId)) return;
+
+  const tag = getLiveScoreTag(data.gameId);
+  const isLive = data.status !== "final";
+  // Solo suena la primera: las demás reemplazan a la anterior en silencio.
+  const existing = await self.registration.getNotifications({ tag });
+
+  await self.registration.showNotification(formatLiveScoreTitle(data), {
+    tag,
+    body:
+      typeof data.lastPlay === "string" && data.lastPlay
+        ? data.lastPlay
+        : "Toca para ver el partido",
+    icon: ICON_URL,
+    badge: BADGE_URL,
+    actions: [
+      { action: "open", title: "Ver Partido" },
+      { action: "mute", title: "Silenciar" },
+    ],
+    // Fija mientras se juega; al terminar puede descartarse sola.
+    requireInteraction: isLive,
+    silent: existing.length > 0,
+    timestamp: Date.now(),
+    data: { url: `/partidos/${data.gameId}`, gameId: data.gameId },
+  });
+}
+
+async function clearLiveScore(gameId) {
+  const notifications = await self.registration.getNotifications({
+    tag: getLiveScoreTag(gameId),
+  });
+  for (const notification of notifications) notification.close();
+}
+
+/* ------------------------------------------------------------------ */
+/* Push y mensajes de la página                                        */
+/* ------------------------------------------------------------------ */
+
 function readPushData(event) {
   if (!event.data) return {};
 
@@ -56,20 +194,52 @@ function readPushData(event) {
   }
 }
 
-// Formato esperado: { title, body, url, tag }.
+// Formatos: una actualización "live-score" o { title, body, url, tag }.
 self.addEventListener("push", (event) => {
-  const { title, body, url, tag } = readPushData(event);
+  const data = readPushData(event);
 
+  if (data.type === "live-score") {
+    event.waitUntil(showLiveScore(data));
+    return;
+  }
+
+  const { title, body, url, tag } = data;
   event.waitUntil(
     self.registration.showNotification(title ?? APP_NAME, {
       body,
       tag,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/badge-96.png",
+      icon: ICON_URL,
+      badge: BADGE_URL,
       data: { url },
     }),
   );
 });
+
+// El simulador de la app usa el mismo camino que un push real.
+self.addEventListener("message", (event) => {
+  if (event.origin && event.origin !== self.location.origin) return;
+  const data = event.data ?? {};
+
+  switch (data.type) {
+    case "live-score":
+      event.waitUntil(showLiveScore(data));
+      break;
+    case "live-score-clear":
+      if (typeof data.gameId === "string") {
+        event.waitUntil(clearLiveScore(data.gameId));
+      }
+      break;
+    case "live-score-unmute":
+      if (typeof data.gameId === "string") {
+        event.waitUntil(setGameMuted(data.gameId, false));
+      }
+      break;
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* Clic en la notificación                                             */
+/* ------------------------------------------------------------------ */
 
 /** Solo abre rutas de la app, aunque el mensaje traiga otra dirección. */
 function getNotificationUrl(notification) {
@@ -95,7 +265,20 @@ async function openNotificationUrl(url) {
   return self.clients.openWindow(url);
 }
 
+async function muteGame(gameId) {
+  await setGameMuted(gameId, true);
+  await notifyClients({ type: "live-score-muted", gameId });
+}
+
 self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  event.waitUntil(openNotificationUrl(getNotificationUrl(event.notification)));
+  const { notification, action } = event;
+  notification.close();
+
+  const gameId = notification.data?.gameId;
+  if (action === "mute" && typeof gameId === "string") {
+    event.waitUntil(muteGame(gameId));
+    return;
+  }
+
+  event.waitUntil(openNotificationUrl(getNotificationUrl(notification)));
 });

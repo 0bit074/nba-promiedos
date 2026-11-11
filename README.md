@@ -1,4 +1,4 @@
-# NBA Rookie
+# The Rookie App
 
 App web responsive de la NBA: marcadores en vivo, fixture, posiciones, jugadores y un minijuego de predicciones.
 
