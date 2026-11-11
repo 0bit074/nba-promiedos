@@ -71,7 +71,11 @@ function StandingRow({
             <span className="sr-only">({ZONES[zone].label})</span>
           </Link>
           <FavoriteTeamButton
-            team={{ id: team.id, name: team.name }}
+            team={{
+              id: team.id,
+              name: team.name,
+              abbreviation: team.abbreviation,
+            }}
             size="compact"
           />
         </div>

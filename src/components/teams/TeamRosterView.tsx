@@ -42,7 +42,9 @@ export async function TeamRosterView({
       <header className="flex items-center gap-3">
         <TeamLogo url={team.logoUrl} size={48} className="size-12 shrink-0 object-contain" />
         <h1 className="min-w-0 flex-1 text-2xl font-bold">{team.fullName}</h1>
-        <FavoriteTeamButton team={{ id: team.id, name: team.name }} />
+        <FavoriteTeamButton
+          team={{ id: team.id, name: team.name, abbreviation: team.abbreviation }}
+        />
       </header>
       <section>
         <h2 className="mb-2 text-xs font-semibold tracking-wide text-muted uppercase">
