@@ -1,11 +1,36 @@
 import { timingSafeEqual } from "node:crypto";
-import type { NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
 import { runPushCron } from "@/lib/push/cron";
 import { configureWebPush } from "@/lib/push/send";
-import { getPushStore } from "@/lib/push/store";
+import { getPushStore, type PushStore } from "@/lib/push/store";
 
-/** Se llama cada minuto: tiene que terminar mucho antes del siguiente. */
-export const maxDuration = 30;
+/**
+ * Se llama cada minuto. Responde enseguida (cron-job.org corta a los 30 s) y,
+ * si alguien sigue un partido en juego, sigue revisando a los 15, 30 y 45 s:
+ * así el reloj de la notificación no queda quieto un minuto entero.
+ */
+export const maxDuration = 60;
+
+const EXTRA_ROUNDS_SECONDS = [15, 30, 45];
+
+function waitUntil(startedAt: number, seconds: number) {
+  const delay = startedAt + seconds * 1000 - Date.now();
+  return new Promise((resolve) => setTimeout(resolve, Math.max(delay, 0)));
+}
+
+async function runExtraRounds(store: PushStore, startedAt: number) {
+  for (const seconds of EXTRA_ROUNDS_SECONDS) {
+    await waitUntil(startedAt, seconds);
+    try {
+      const summary = await runPushCron(store, { liveOnly: true });
+      console.info(`Ronda en vivo +${seconds}s: ${summary.deliveries.length} envíos`);
+      // Sin partidos seguidos en juego no hace falta seguir esperando.
+      if (summary.followedLiveGames === 0) return;
+    } catch (error) {
+      console.error("Falló una ronda de notificaciones en vivo", error);
+    }
+  }
+}
 
 function isAuthorized(request: NextRequest, secret: string) {
   const header = request.headers.get("authorization") ?? "";
@@ -38,8 +63,13 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: vapidError }, { status: 503 });
   }
 
+  const startedAt = Date.now();
   try {
-    return Response.json(await runPushCron(store, { dryRun }));
+    const summary = await runPushCron(store, { dryRun });
+    if (!dryRun && summary.followedLiveGames > 0) {
+      after(() => runExtraRounds(store, startedAt));
+    }
+    return Response.json(summary);
   } catch (error) {
     console.error("Falló el envío de notificaciones", error);
     return Response.json({ error: "Falló el envío." }, { status: 500 });

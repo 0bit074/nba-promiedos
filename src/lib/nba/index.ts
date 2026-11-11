@@ -46,6 +46,11 @@ export function isGameOver({ status }: Game) {
   return status === "final" || status === "postponed" || status === "canceled";
 }
 
+/** Sin caché: para el marcador en vivo de las notificaciones (cada 15 s). */
+export function getGamesByDateFresh(date: string): Promise<Game[]> {
+  return provider.getGamesByDate(date);
+}
+
 export async function getGamesByDate(date: string): Promise<Game[]> {
   "use cache";
 
