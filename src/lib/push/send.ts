@@ -1,6 +1,6 @@
 // Solo lo importan los route handlers de /api/push (servidor).
 import { sendNotification, setVapidDetails, WebPushError } from "web-push";
-import { VAPID_PUBLIC_KEY } from "@/lib/site";
+import { SITE_URL, VAPID_PUBLIC_KEY } from "@/lib/site";
 import type { PushRecord } from "./store";
 
 /** Quita espacios y comillas que suelen colarse al pegar en Vercel. */
@@ -11,7 +11,7 @@ function readEnv(name: string) {
 /** Identifica al remitente ante los servicios push (no hace falta un email). */
 function getVapidSubject() {
   const subject = readEnv("VAPID_SUBJECT");
-  if (!subject) return "https://nba-promiedos-gamma.vercel.app";
+  if (!subject) return SITE_URL;
   // Un email suelto no es válido para web-push: necesita "mailto:".
   return subject.includes("@") && !subject.includes(":") ? `mailto:${subject}` : subject;
 }

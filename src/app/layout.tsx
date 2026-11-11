@@ -5,7 +5,7 @@ import { AppHeader } from "@/components/layout/AppHeader";
 import { MobileNav } from "@/components/layout/navigation";
 import { PushSync } from "@/components/pwa/PushSync";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
-import { APP_DESCRIPTION, APP_NAME, THEME_COLOR } from "@/lib/site";
+import { APP_DESCRIPTION, APP_NAME, SITE_URL, THEME_COLOR } from "@/lib/site";
 import { DEFAULT_THEME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -15,6 +15,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: { default: APP_NAME, template: `%s | ${APP_NAME}` },
   description: APP_DESCRIPTION,
   appleWebApp: {
