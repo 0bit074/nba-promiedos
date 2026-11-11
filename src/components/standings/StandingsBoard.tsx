@@ -29,6 +29,9 @@ function StandingsLegend() {
         <span className="hidden sm:inline"> U10: últimos 10 partidos.</span>{" "}
         Racha: W ganados, L perdidos.
       </p>
+      <p className="mt-1">
+        ⭐ Marca hasta 3 equipos favoritos del Este y 3 del Oeste.
+      </p>
     </div>
   );
 }

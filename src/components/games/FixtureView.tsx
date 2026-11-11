@@ -3,7 +3,8 @@
 import { Star } from "lucide-react";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { useFavoriteTeam } from "@/components/teams/useFavoriteTeam";
+import { useFavoriteTeams } from "@/components/teams/useFavoriteTeams";
+import { MAX_FAVORITES_PER_CONFERENCE } from "@/lib/favorites";
 
 export type FixtureSection = "live" | "upcoming" | "finished";
 
@@ -28,7 +29,7 @@ type Filter = "all" | "favorite";
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "Todos" },
-  { id: "favorite", label: "Mi Equipo" },
+  { id: "favorite", label: "Mis Equipos" },
 ];
 
 function GameSection({
@@ -78,19 +79,20 @@ function EmptyFavorite({ title, children }: { title: string; children: ReactNode
   );
 }
 
-/** Fixture con "Mi Equipo" fijado arriba y el filtro Todos / Mi Equipo. */
+/** Fixture con "Mis equipos" fijados arriba y el filtro Todos / Mis Equipos. */
 export function FixtureView({ items }: { items: FixtureItem[] }) {
-  const favorite = useFavoriteTeam();
+  const favorites = useFavoriteTeams();
   const [filter, setFilter] = useState<Filter>("all");
 
+  const favoriteIds = new Set(favorites.map(({ id }) => id));
   const isFavoriteGame = (item: FixtureItem) =>
-    favorite !== null && item.teamIds.includes(favorite.id);
+    item.teamIds.some((id) => favoriteIds.has(id));
   const favoriteItems = items.filter(isFavoriteGame);
   const otherItems = items.filter((item) => !isFavoriteGame(item));
 
   const favoriteSection = (
     <GameSection
-      title={favorite ? `Mi equipo · ${favorite.name}` : "Mi equipo"}
+      title="Mis equipos"
       icon={<Star aria-hidden className="size-3.5 text-accent" fill="currentColor" />}
       items={favoriteItems}
       isHighlighted
@@ -127,17 +129,26 @@ export function FixtureView({ items }: { items: FixtureItem[] }) {
       </div>
 
       {filter === "favorite" ? (
-        favorite === null ? (
-          <EmptyFavorite title="Todavía no elegiste tu equipo">
-            Márcalo con la ⭐ en{" "}
+        favorites.length === 0 ? (
+          <EmptyFavorite title="Todavía no elegiste tus equipos">
+            Márcalos con la ⭐ en{" "}
             <Link href="/posiciones" className="font-medium text-accent">
               Posiciones
             </Link>{" "}
-            o en la página del equipo.
+            o en la página de cada equipo: hasta{" "}
+            {MAX_FAVORITES_PER_CONFERENCE} del Este y{" "}
+            {MAX_FAVORITES_PER_CONFERENCE} del Oeste.
           </EmptyFavorite>
         ) : favoriteItems.length === 0 ? (
-          <EmptyFavorite title={`${favorite.name} no juega este día`}>
-            Elige otra fecha para ver sus partidos.
+          <EmptyFavorite
+            title={
+              favorites.length === 1
+                ? `${favorites[0].name} no juega este día`
+                : "Tus equipos no juegan este día"
+            }
+          >
+            {favorites.map(({ name }) => name).join(", ")}. Elige otra fecha
+            para ver sus partidos.
           </EmptyFavorite>
         ) : (
           favoriteSection
