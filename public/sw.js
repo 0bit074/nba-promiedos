@@ -147,6 +147,37 @@ function getLiveScoreTag(gameId) {
   return `live-match-${gameId}`;
 }
 
+const LOGO_PREFIX = "https://a.espncdn.com/i/teamlogos/nba/";
+
+function hasLogos({ home, away }) {
+  return [home.logo, away.logo].every(
+    (logo) => typeof logo === "string" && logo.startsWith(LOGO_PREFIX),
+  );
+}
+
+/** Imagen generada por /api/push/image con los escudos (y el marcador). */
+function getMatchupImageUrl(data, variant) {
+  const params = new URLSearchParams({ v: variant, hl: data.home.logo, al: data.away.logo });
+  if (variant === "card") {
+    params.set("h", data.home.abbr);
+    params.set("a", data.away.abbr);
+    params.set("hs", String(data.home.score));
+    params.set("as", String(data.away.score));
+    params.set("t", formatGameTime(data));
+  }
+  return `/api/push/image?${params}`;
+}
+
+function formatLiveScoreBody(data) {
+  const { home, away } = data;
+  const isLive = data.status !== "final";
+  const names =
+    typeof home.name === "string" && typeof away.name === "string"
+      ? `${home.name} vs ${away.name} · `
+      : "";
+  return `${names}${isLive ? "Toca para ver el partido" : "Partido terminado"}`;
+}
+
 async function showLiveScore(data) {
   if (!isValidLiveScore(data)) return;
   if ((await readMutedGames()).includes(data.gameId)) return;
@@ -155,11 +186,14 @@ async function showLiveScore(data) {
   const isLive = data.status !== "final";
   // Solo suena la primera: las demás reemplazan a la anterior en silencio.
   const existing = await self.registration.getNotifications({ tag });
+  const withLogos = hasLogos(data);
 
   await self.registration.showNotification(formatLiveScoreTitle(data), {
     tag,
-    body: isLive ? "Toca para ver el partido" : "Partido terminado",
-    icon: ICON_URL,
+    body: formatLiveScoreBody(data),
+    // Ícono con los dos escudos y, al expandirla (Android), el marcador grande.
+    icon: withLogos ? getMatchupImageUrl(data, "icon") : ICON_URL,
+    image: withLogos ? getMatchupImageUrl(data, "card") : undefined,
     badge: BADGE_URL,
     actions: [
       { action: "open", title: "Ver Partido" },

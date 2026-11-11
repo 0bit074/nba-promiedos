@@ -10,6 +10,10 @@ export interface LiveScoreTeam {
   /** Abreviatura, por ejemplo "LAL". */
   abbr: string;
   score: number;
+  /** Nombre corto, por ejemplo "Lakers". */
+  name: string;
+  /** Logo de ESPN para fondo oscuro (la notificación arma su imagen con él). */
+  logo: string;
 }
 
 export interface LiveScoreUpdate {
@@ -36,6 +40,15 @@ export function normalizeClock(clock: string | null) {
   return `${minutes.padStart(2, "0")}:${seconds.padStart(2, "0")}`;
 }
 
+function toLiveScoreTeam({ team, score }: Game["home"]): LiveScoreTeam {
+  return {
+    abbr: team.abbreviation,
+    score: score ?? 0,
+    name: team.name,
+    logo: team.logoUrl,
+  };
+}
+
 /** `null` si el partido no está en juego ni terminado. */
 export function toLiveScoreUpdate(game: Game): LiveScoreUpdate | null {
   if (game.status !== "live" && game.status !== "final") return null;
@@ -43,8 +56,8 @@ export function toLiveScoreUpdate(game: Game): LiveScoreUpdate | null {
   return {
     type: "live-score",
     gameId: game.id,
-    home: { abbr: game.home.team.abbreviation, score: game.home.score ?? 0 },
-    away: { abbr: game.away.team.abbreviation, score: game.away.score ?? 0 },
+    home: toLiveScoreTeam(game.home),
+    away: toLiveScoreTeam(game.away),
     period: Math.max(game.period, 1),
     clock: normalizeClock(game.clock),
     isPeriodBreak: game.isPeriodBreak,
